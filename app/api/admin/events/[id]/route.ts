@@ -50,7 +50,7 @@ export async function PATCH(
     if (ev) {
       const base = ev.expires_at ? new Date(ev.expires_at) : new Date(ev.created_at)
       if (base < new Date()) base.setTime(Date.now())
-      base.setFullYear(base.getFullYear() + 1)
+      base.setDate(base.getDate() + 30)
       updates.expires_at = base.toISOString()
     }
   }

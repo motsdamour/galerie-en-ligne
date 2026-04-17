@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   // Expiration 12 mois après l'événement
   const expiresAt = new Date(eventDate)
-  expiresAt.setMonth(expiresAt.getMonth() + 12)
+  expiresAt.setDate(expiresAt.getDate() + 30)
 
   const db = supabaseAdmin()
   const { data, error } = await db

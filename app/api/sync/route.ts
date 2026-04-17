@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
     const passwordHash = await hashPassword(password)
 
     const expiresAt = new Date(today)
-    expiresAt.setMonth(expiresAt.getMonth() + 12)
+    expiresAt.setDate(expiresAt.getDate() + 30)
 
     const editToken = crypto.randomUUID()
 
