@@ -46,22 +46,30 @@ export async function GET(
       })),
     }))
 
-    // Separer les medias invites (prefixe "invite_") des medias normaux
+    // Separer les medias invites des medias normaux
+    // Sources : sous-dossier "photos-invites" + fichiers prefixes "invite_"
     const guestPhotos: any[] = []
 
-    const foldersClean = foldersWithUrls.map(f => ({
-      ...f,
-      videos: f.videos.filter((v: any) => {
-        if (v.name.startsWith('invite_')) {
-          guestPhotos.push({
-            ...v,
-            name: v.name.replace(/^invite_\d+_/, ''),
-          })
-          return false
+    const foldersClean = foldersWithUrls
+      .map(f => {
+        // Le sous-dossier photos-invites → tout va dans guestPhotos
+        if (f.name.toLowerCase() === 'photos-invites') {
+          guestPhotos.push(...f.videos)
+          return { ...f, videos: [] }
         }
-        return true
-      }),
-    })).filter(f => f.videos.length > 0)
+        // Fichiers prefixes invite_ → guestPhotos
+        return {
+          ...f,
+          videos: f.videos.filter((v: any) => {
+            if (v.name.startsWith('invite_')) {
+              guestPhotos.push({ ...v, name: v.name.replace(/^invite_\d+_/, '') })
+              return false
+            }
+            return true
+          }),
+        }
+      })
+      .filter(f => f.videos.length > 0)
 
     const totalVideos = foldersClean.reduce((sum, f) => sum + f.videos.length, 0)
 
