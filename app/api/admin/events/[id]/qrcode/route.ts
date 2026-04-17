@@ -36,7 +36,7 @@ export async function GET(
     color: { dark: '#3c3c3b', light: '#ffffff' },
   })
 
-  return new NextResponse(pngBuffer, {
+  return new NextResponse(pngBuffer.buffer as ArrayBuffer, {
     headers: {
       'content-type': 'image/png',
       'content-disposition': `attachment; filename="qr-${event.slug}.png"`,
