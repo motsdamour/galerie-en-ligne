@@ -15,11 +15,6 @@ export async function GET(
   if (linkData.result !== 0) return new Response('pCloud error', { status: 502 })
 
   const fileUrl = `https://${linkData.hosts[0]}${linkData.path}`
-
-  // Pré-requête HEAD pour obtenir content-length
-  const headRes = await fetch(fileUrl, { method: 'HEAD' })
-  const totalSize = headRes.headers.get('content-length')
-
   const rangeHeader = request.headers.get('range')
   const fetchHeaders: HeadersInit = {}
   if (rangeHeader) fetchHeaders['range'] = rangeHeader
@@ -28,23 +23,22 @@ export async function GET(
 
   const responseHeaders = new Headers()
   responseHeaders.set('accept-ranges', 'bytes')
-  responseHeaders.set('content-type', 'video/mp4')
+  responseHeaders.set('content-type', fileRes.headers.get('content-type') || 'application/octet-stream')
   responseHeaders.set('cache-control', 'no-store')
 
-  // Forcer content-length depuis HEAD si pas dans la réponse
-  const contentLength = fileRes.headers.get('content-length') || totalSize
+  const contentLength = fileRes.headers.get('content-length')
   if (contentLength) responseHeaders.set('content-length', contentLength)
 
   const contentRange = fileRes.headers.get('content-range')
   if (contentRange) responseHeaders.set('content-range', contentRange)
 
   if (url.searchParams.get('download')) {
-    const filename = url.searchParams.get('filename') || 'video.mp4'
+    const filename = url.searchParams.get('filename') || 'file'
     responseHeaders.set('content-disposition', `attachment; filename="${filename}"`)
   }
 
   return new Response(fileRes.body, {
-    status: rangeHeader ? 206 : 200,
+    status: fileRes.status,
     headers: responseHeaders,
   })
 }
