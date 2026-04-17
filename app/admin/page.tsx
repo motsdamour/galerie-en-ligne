@@ -27,6 +27,8 @@ export default function AdminPage() {
   const [form, setForm] = useState({ coupleName: '', eventDate: '', eventType: 'mariage', pcloudFolderId: '', customPassword: '' })
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState<CreatedEvent | null>(null)
+  const [editingPwd, setEditingPwd] = useState<{ id: string; value: string } | null>(null)
+  const [savingPwd, setSavingPwd] = useState(false)
 
   useEffect(() => {
     const t = localStorage.getItem('admin_token')
@@ -54,6 +56,22 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/events', { headers: { Authorization: `Bearer ${t}` } })
     const data = await res.json()
     if (Array.isArray(data)) setEvents(data)
+  }
+
+  async function savePassword(id: string, newPassword: string) {
+    setSavingPwd(true)
+    const res = await fetch(`/api/admin/events/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ password: newPassword }),
+    })
+    setSavingPwd(false)
+    if (res.ok) {
+      setEditingPwd(null)
+    } else {
+      const data = await res.json()
+      alert(data.error)
+    }
   }
 
   async function createEvent(e: React.FormEvent) {
@@ -170,26 +188,68 @@ export default function AdminPage() {
               <table style={{ width: '100%', fontSize: '13px', fontFamily: 'Arial', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '0.5px solid var(--border)' }}>
-                    {['Couple', 'Date', 'Type', 'Statut', 'Lien'].map(h => (
+                    {['Couple', 'Date', 'Type', 'Statut', 'Lien', 'Actions'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--brown-muted)', fontWeight: 400, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {events.map(ev => (
-                    <tr key={ev.id} style={{ borderBottom: '0.5px solid var(--border)' }}>
-                      <td style={{ padding: '12px', fontStyle: 'italic' }}>{ev.couple_name}</td>
-                      <td style={{ padding: '12px', color: 'var(--brown-muted)' }}>{new Date(ev.event_date).toLocaleDateString('fr-FR')}</td>
-                      <td style={{ padding: '12px', color: 'var(--brown-muted)', textTransform: 'capitalize' }}>{ev.event_type}</td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ background: ev.is_active ? '#e1f5ee' : '#fbeaf0', color: ev.is_active ? '#0f6e56' : '#993556', padding: '3px 10px', borderRadius: '10px', fontSize: '11px' }}>
-                          {ev.is_active ? 'Active' : 'Désactivée'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <a href={`/galerie/${ev.slug}`} target="_blank" style={{ color: 'var(--rose)', textDecoration: 'none' }}>Voir →</a>
-                      </td>
-                    </tr>
+                    <>
+                      <tr key={ev.id} style={{ borderBottom: editingPwd?.id === ev.id ? 'none' : '0.5px solid var(--border)' }}>
+                        <td style={{ padding: '12px', fontStyle: 'italic' }}>{ev.couple_name}</td>
+                        <td style={{ padding: '12px', color: 'var(--brown-muted)' }}>{new Date(ev.event_date).toLocaleDateString('fr-FR')}</td>
+                        <td style={{ padding: '12px', color: 'var(--brown-muted)', textTransform: 'capitalize' }}>{ev.event_type}</td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ background: ev.is_active ? '#e1f5ee' : '#fbeaf0', color: ev.is_active ? '#0f6e56' : '#993556', padding: '3px 10px', borderRadius: '10px', fontSize: '11px' }}>
+                            {ev.is_active ? 'Active' : 'Désactivée'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <a href={`/galerie/${ev.slug}`} target="_blank" style={{ color: 'var(--rose)', textDecoration: 'none' }}>Voir →</a>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <button
+                            className="btn-rose"
+                            style={{ fontSize: '10px', padding: '4px 12px' }}
+                            onClick={() => setEditingPwd(editingPwd?.id === ev.id ? null : { id: ev.id, value: '' })}
+                          >
+                            Modifier mdp
+                          </button>
+                        </td>
+                      </tr>
+                      {editingPwd?.id === ev.id && (
+                        <tr key={`${ev.id}-pwd`} style={{ borderBottom: '0.5px solid var(--border)', background: 'var(--cream)' }}>
+                          <td colSpan={6} style={{ padding: '10px 12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <input
+                                type="text"
+                                placeholder="Nouveau mot de passe"
+                                value={editingPwd.value}
+                                onChange={e => setEditingPwd({ id: ev.id, value: e.target.value })}
+                                style={{ width: '220px', padding: '6px 10px', fontSize: '13px' }}
+                                autoFocus
+                              />
+                              <button
+                                className="btn-rose-solid"
+                                style={{ fontSize: '11px', padding: '6px 16px' }}
+                                disabled={savingPwd || !editingPwd.value}
+                                onClick={() => savePassword(ev.id, editingPwd.value)}
+                              >
+                                {savingPwd ? '…' : 'Sauvegarder'}
+                              </button>
+                              <button
+                                className="btn-rose"
+                                style={{ fontSize: '11px', padding: '6px 14px' }}
+                                onClick={() => setEditingPwd(null)}
+                              >
+                                Annuler
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   ))}
                 </tbody>
               </table>

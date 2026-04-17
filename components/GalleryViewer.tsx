@@ -94,7 +94,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       {/* Nav */}
       <nav style={{ background: 'var(--cream)', borderBottom: '0.5px solid var(--border)', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Logo */}
-        <img src="/logo.svg" alt="Mots d'Amour" style={{ height: '40px', width: 'auto' }} />
+        <img src="/logo.svg" alt="Mots d'Amour" style={{ width: '100px', height: 'auto' }} />
 
         {event && (
           <div style={{ textAlign: 'center' }}>
