@@ -91,7 +91,12 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [error, setError] = useState('')
   const [isEditor, setIsEditor] = useState(false)
   const [hiddenIds, setHiddenIds] = useState<Set<number>>(new Set())
+  const [guestPhotos, setGuestPhotos] = useState<MediaFile[]>([])
   const [activeTab, setActiveTab] = useState(0)
+  const [showGuestTab, setShowGuestTab] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
+  const [uploadSuccess, setUploadSuccess] = useState(false)
   const [dark, setDark] = useState(false)
   const [navDropOpen, setNavDropOpen] = useState(false)
   const [zipKey, setZipKey] = useState<string | null>(null)
@@ -115,6 +120,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         setEvent(data.event)
         setFolders(data.folders ?? [])
         setTotalVideos(data.totalVideos ?? 0)
+        setGuestPhotos(data.guestPhotos ?? [])
         if (data.isEditor) setIsEditor(true)
       })
       .catch(() => setError('Erreur de chargement'))
@@ -145,6 +151,28 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       setFolders(prev => prev.map(f => ({ ...f, videos: f.videos.map(v => v.id === fileId ? { ...v, hidden: false } : v) })))
       setTotalVideos(n => n + 1)
     }
+  }
+
+  async function handleUpload(files: FileList) {
+    setUploading(true)
+    setUploadProgress({ done: 0, total: files.length })
+    setUploadSuccess(false)
+    for (let i = 0; i < files.length; i++) {
+      const form = new FormData()
+      form.append('file', files[i])
+      await fetch(`/api/gallery/${slug}/upload`, { method: 'POST', body: form })
+      setUploadProgress({ done: i + 1, total: files.length })
+    }
+    setUploading(false)
+    setUploadSuccess(true)
+    setTimeout(() => setUploadSuccess(false), 4000)
+    // Recharger les photos invites
+    const url = editToken
+      ? `/api/gallery/${slug}/videos?edit_token=${editToken}`
+      : `/api/gallery/${slug}/videos`
+    const res = await fetch(url)
+    const data = await res.json()
+    if (data.guestPhotos) setGuestPhotos(data.guestPhotos)
   }
 
   useEffect(() => {
@@ -401,12 +429,12 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             {folders.map((folder, i) => (
               <button
                 key={folder.folderid}
-                onClick={() => setActiveTab(i)}
+                onClick={() => { setActiveTab(i); setShowGuestTab(false) }}
                 style={{
                   flexShrink: 0,
-                  background: activeTab === i ? '#e97872' : 'transparent',
-                  color: activeTab === i ? 'white' : t.muted,
-                  border: `0.5px solid ${activeTab === i ? '#e97872' : t.border}`,
+                  background: !showGuestTab && activeTab === i ? '#e97872' : 'transparent',
+                  color: !showGuestTab && activeTab === i ? 'white' : t.muted,
+                  border: `0.5px solid ${!showGuestTab && activeTab === i ? '#e97872' : t.border}`,
                   borderRadius: '20px', padding: '8px 20px', fontSize: '12px',
                   fontFamily: "'Poppins', sans-serif", cursor: 'pointer',
                   letterSpacing: '0.04em', transition: 'all 0.15s', minHeight: '44px',
@@ -417,20 +445,86 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({folder.videos.length})</span>
               </button>
             ))}
+            <button
+              onClick={() => setShowGuestTab(true)}
+              style={{
+                flexShrink: 0,
+                background: showGuestTab ? '#e97872' : 'transparent',
+                color: showGuestTab ? 'white' : t.muted,
+                border: `0.5px solid ${showGuestTab ? '#e97872' : t.border}`,
+                borderRadius: '20px', padding: '8px 20px', fontSize: '12px',
+                fontFamily: "'Poppins', sans-serif", cursor: 'pointer',
+                letterSpacing: '0.04em', transition: 'all 0.15s', minHeight: '44px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Vos photos
+              <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({guestPhotos.filter(p => !hiddenIds.has(p.id)).length})</span>
+            </button>
           </div>
         )}
       </div>
 
       {/* Grid */}
-      <div className={isPhotosTab ? 'gallery-grid-photo gallery-content' : 'gallery-grid-video gallery-content'}>
-        {currentItems.filter(item => !hiddenIds.has(item.id)).map((item) => {
-          const isHidden = item.hidden || false
-          const isPhoto = isPhotosTab || item.type === 'image'
-          if (!isPhoto) return <VideoCard key={item.id} item={item} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
-          const photoIdx = photoItems.findIndex(p => p.id === item.id)
-          return <PhotoCard key={item.id} item={item} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
-        })}
-      </div>
+      {!showGuestTab ? (
+        <div className={isPhotosTab ? 'gallery-grid-photo gallery-content' : 'gallery-grid-video gallery-content'}>
+          {currentItems.filter(item => !hiddenIds.has(item.id)).map((item) => {
+            const isHidden = item.hidden || false
+            const isPhoto = isPhotosTab || item.type === 'image'
+            if (!isPhoto) return <VideoCard key={item.id} item={item} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+            const photoIdx = photoItems.findIndex(p => p.id === item.id)
+            return <PhotoCard key={item.id} item={item} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+          })}
+        </div>
+      ) : (
+        <div className="gallery-content" style={{ padding: '20px' }}>
+          {/* Upload zone */}
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              id="guest-upload"
+              style={{ display: 'none' }}
+              onChange={e => e.target.files && e.target.files.length > 0 && handleUpload(e.target.files)}
+            />
+            <label
+              htmlFor="guest-upload"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                background: '#e97872', color: 'white', padding: '12px 28px',
+                borderRadius: '25px', fontSize: '12px', fontFamily: "'Poppins', sans-serif",
+                letterSpacing: '0.06em', textTransform: 'uppercase', cursor: uploading ? 'default' : 'pointer',
+                opacity: uploading ? 0.6 : 1,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              {uploading ? `${uploadProgress.done}/${uploadProgress.total}...` : 'Ajouter mes photos'}
+            </label>
+            {uploadSuccess && (
+              <p style={{ fontSize: '13px', color: '#0f6e56', fontFamily: "'Poppins', sans-serif", marginTop: '12px' }}>
+                Photos ajoutees avec succes !
+              </p>
+            )}
+          </div>
+
+          {/* Guest photos grid */}
+          <div className="gallery-grid-photo">
+            {guestPhotos.filter(p => !hiddenIds.has(p.id)).map(item => {
+              const isHidden = item.hidden || false
+              return <PhotoCard key={item.id} item={item} onOpen={() => {}} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+            })}
+          </div>
+
+          {guestPhotos.filter(p => !hiddenIds.has(p.id)).length === 0 && !uploading && (
+            <p style={{ textAlign: 'center', fontSize: '13px', color: t.muted, fontFamily: "'Poppins', sans-serif", marginTop: '20px' }}>
+              Aucune photo pour l'instant. Soyez le premier a partager vos souvenirs !
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="gallery-footer" style={{ borderTop: `0.5px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>

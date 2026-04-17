@@ -48,6 +48,37 @@ export async function GET(
 
     const totalVideos = foldersWithUrls.reduce((sum, f) => sum + f.videos.length, 0)
 
+    // Lister les photos invités
+    const pcloudToken = process.env.PCLOUD_AUTH_TOKEN
+    let guestPhotos: any[] = []
+    if (pcloudToken) {
+      try {
+        const guestRes = await fetch(
+          `https://eapi.pcloud.com/listfolder?auth=${pcloudToken}&folderid=${event.pcloud_folder_id}&recursive=0`
+        )
+        const guestData = await guestRes.json()
+        const photosFolder = (guestData.metadata?.contents ?? []).find((c: any) => c.isfolder && c.name === 'photos-invites')
+        if (photosFolder) {
+          const photosRes = await fetch(
+            `https://eapi.pcloud.com/listfolder?auth=${pcloudToken}&folderid=${photosFolder.folderid}&recursive=0`
+          )
+          const photosData = await photosRes.json()
+          const files = (photosData.metadata?.contents ?? []).filter((c: any) => !c.isfolder)
+          guestPhotos = files
+            .filter((f: any) => !isEditor ? !hiddenFiles.has(String(f.fileid)) : true)
+            .map((f: any) => ({
+              id: f.fileid,
+              name: f.name.replace(/\.[^/.]+$/, ''),
+              size: f.size,
+              type: 'image' as const,
+              hidden: hiddenFiles.has(String(f.fileid)),
+              streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
+              downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
+            }))
+        }
+      } catch {}
+    }
+
     return NextResponse.json({
       event: {
         coupleName: event.couple_name,
@@ -56,6 +87,7 @@ export async function GET(
       },
       folders: foldersWithUrls,
       totalVideos,
+      guestPhotos,
       isEditor: !!isEditor,
     })
   } catch (err) {
