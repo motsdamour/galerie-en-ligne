@@ -454,12 +454,11 @@ function VideoCard({ item }: { item: MediaFile }) {
   return (
     <div style={{ width: '100%' }}>
       <video
-        src={`/api/proxy/${item.id}`}
         controls
-        preload="metadata"
         playsInline
-        {...({'webkit-playsinline': ''} as object)}
-        style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', maxWidth: '100%' }}
+        preload="metadata"
+        src={item.streamUrl || `/api/proxy/${item.id}`}
+        style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }}
       />
     </div>
   )

@@ -28,19 +28,38 @@ export async function GET(
   try {
     const folders = await listVideosByFolder(event.pcloud_folder_id)
 
-    const foldersWithUrls = folders.map((folder) => ({
+    const pcloudToken = process.env.PCLOUD_AUTH_TOKEN
+
+    const foldersWithUrls = await Promise.all(folders.map(async (folder) => ({
       name: folder.name,
       folderid: folder.folderid,
-      videos: folder.videos.map((f) => ({
-        id: f.fileid,
-        name: f.name.replace(/\.[^/.]+$/, ''),
-        size: f.size,
-        type: f.mediaType,
-        streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
-        downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
-        thumbUrl: f.mediaType === 'video' ? `/api/proxy/${f.fileid}?thumb=1` : undefined,
+      videos: await Promise.all(folder.videos.map(async (f) => {
+        let streamUrl = `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`
+
+        // Pour les vidéos : URL pCloud directe (Safari iOS a besoin de 206 + content-length)
+        if (f.mediaType === 'video' && pcloudToken) {
+          try {
+            const linkRes = await fetch(
+              `https://eapi.pcloud.com/getfilelink?auth=${pcloudToken}&fileid=${f.fileid}&forcedownload=0&contenttype=video/mp4`
+            )
+            const linkData = await linkRes.json()
+            if (linkData.result === 0) {
+              streamUrl = `https://${linkData.hosts[0]}${linkData.path}`
+            }
+          } catch {}
+        }
+
+        return {
+          id: f.fileid,
+          name: f.name.replace(/\.[^/.]+$/, ''),
+          size: f.size,
+          type: f.mediaType,
+          streamUrl,
+          downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
+          thumbUrl: f.mediaType === 'video' ? `/api/proxy/${f.fileid}?thumb=1` : undefined,
+        }
       })),
-    }))
+    })))
 
     const totalVideos = foldersWithUrls.reduce((sum, f) => sum + f.videos.length, 0)
 
