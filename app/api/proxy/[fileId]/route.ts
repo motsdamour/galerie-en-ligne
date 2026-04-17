@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { spawn } from 'child_process'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -19,48 +20,42 @@ export async function GET(
 
   const fileUrl = `https://${linkData.hosts[0]}${linkData.path}`
 
-  // Faire HEAD pour obtenir content-length
-  const headRes = await fetch(fileUrl, { method: 'HEAD' })
-  const totalSize = headRes.headers.get('content-length')
-
-  const rangeHeader = request.headers.get('range')
-  const fetchHeaders: HeadersInit = {}
-  if (rangeHeader) fetchHeaders['range'] = rangeHeader
-
-  const fileRes = await fetch(fileUrl, { headers: fetchHeaders })
-
-  const headers: Record<string, string> = {
-    'accept-ranges': 'bytes',
-    'content-type': 'video/mp4',
-    'cache-control': 'no-store',
-    'access-control-allow-origin': '*',
-  }
-
-  // Forcer content-length depuis HEAD
-  const contentLength = fileRes.headers.get('content-length') || totalSize
-  if (contentLength) headers['content-length'] = contentLength
-
-  const contentRange = fileRes.headers.get('content-range')
-  if (contentRange) headers['content-range'] = contentRange
-
   if (url.searchParams.get('download')) {
-    const filename = url.searchParams.get('filename') || 'file'
-    headers['content-disposition'] = `attachment; filename="${filename}"`
+    const fileRes = await fetch(fileUrl)
+    const filename = url.searchParams.get('filename') || 'video.mp4'
+    return new NextResponse(fileRes.body, {
+      headers: {
+        'content-type': 'video/mp4',
+        'content-disposition': `attachment; filename="${filename}"`,
+      }
+    })
   }
 
-  // Node.js stream avec content-length forcé
-  const chunks: Buffer[] = []
-  const reader = fileRes.body!.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    chunks.push(Buffer.from(value))
-  }
-  const buffer = Buffer.concat(chunks)
-  headers['content-length'] = buffer.length.toString()
+  // Remuxer OPUS → AAC avec FFmpeg à la volée
+  const ffmpeg = spawn('ffmpeg', [
+    '-i', fileUrl,
+    '-c:v', 'copy',      // copie vidéo sans réencoder
+    '-c:a', 'aac',       // convertir audio en AAC
+    '-movflags', 'frag_keyframe+empty_moov+faststart',
+    '-f', 'mp4',
+    'pipe:1'             // output vers stdout
+  ])
 
-  return new NextResponse(buffer, {
-    status: rangeHeader ? 206 : 200,
-    headers,
+  const stream = new ReadableStream({
+    start(controller) {
+      ffmpeg.stdout.on('data', (chunk: Buffer) => controller.enqueue(chunk))
+      ffmpeg.stdout.on('end', () => controller.close())
+      ffmpeg.stderr.on('data', () => {}) // ignorer stderr
+      ffmpeg.on('error', (err) => controller.error(err))
+    }
+  })
+
+  return new NextResponse(stream, {
+    headers: {
+      'content-type': 'video/mp4',
+      'accept-ranges': 'bytes',
+      'cache-control': 'no-store',
+      'transfer-encoding': 'chunked',
+    }
   })
 }
