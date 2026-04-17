@@ -11,6 +11,7 @@ type MediaFile = {
   streamUrl: string
   downloadUrl: string
   thumbUrl?: string
+  hidden?: boolean
   type: 'video' | 'image'
 }
 
@@ -96,6 +97,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [zipKey, setZipKey] = useState<string | null>(null)
   const [zipProgress, setZipProgress] = useState({ done: 0, total: 0 })
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
   const navDropRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number | null>(null)
 
@@ -127,6 +129,18 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     if (res.ok) {
       setHiddenIds(prev => new Set([...prev, fileId]))
       setTotalVideos(n => n - 1)
+    }
+  }
+
+  async function unhideFile(fileId: number) {
+    const res = await fetch(`/api/gallery/${slug}/unhide`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileId, edit_token: editToken }),
+    })
+    if (res.ok) {
+      setHiddenIds(prev => { const s = new Set(prev); s.delete(fileId); return s })
+      setTotalVideos(n => n + 1)
     }
   }
 
@@ -301,6 +315,18 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               )}
             </div>
 
+            {/* Partager */}
+            <button
+              onClick={() => setShareOpen(true)}
+              style={{
+                background: 'transparent', border: `0.5px solid ${t.border}`, borderRadius: '20px',
+                padding: '8px 14px', fontSize: '11px', cursor: 'pointer',
+                fontFamily: "'Poppins', sans-serif", color: t.muted, whiteSpace: 'nowrap',
+              }}
+            >
+              Partager
+            </button>
+
             {/* Toggle dark/light */}
             <button
               onClick={() => setDark(d => !d)}
@@ -341,11 +367,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       <div className="gallery-hero" style={{ textAlign: 'center' }}>
         {event && (
           <>
-            <h1 className="gallery-couple-name" style={{ color: '#3c3c3b', marginBottom: '6px' }}>
+            <h1 className="gallery-couple-name" style={{ color: dark ? '#ffffff' : '#3c3c3b', marginBottom: '6px' }}>
               {event.coupleName}
             </h1>
             {event.expiresAt && (
-              <p style={{ fontSize: '11px', color: '#b4b2a9', fontFamily: "'Poppins', sans-serif", margin: '0 0 10px' }}>
+              <p style={{ fontSize: '11px', color: dark ? '#888888' : '#b4b2a9', fontFamily: "'Poppins', sans-serif", margin: '0 0 10px' }}>
                 Galerie disponible encore {Math.max(0, Math.ceil((new Date(event.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} jours
               </p>
             )}
@@ -391,10 +417,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       {/* Grid */}
       <div className={isPhotosTab ? 'gallery-grid-photo gallery-content' : 'gallery-grid-video gallery-content'}>
         {currentItems.filter(item => !hiddenIds.has(item.id)).map((item) => {
+          const isHidden = item.hidden || false
           const isPhoto = isPhotosTab || item.type === 'image'
-          if (!isPhoto) return <VideoCard key={item.id} item={item} isEditor={isEditor} onHide={() => hideFile(item.id)} />
+          if (!isPhoto) return <VideoCard key={item.id} item={item} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
           const photoIdx = photoItems.findIndex(p => p.id === item.id)
-          return <PhotoCard key={item.id} item={item} onOpen={() => setLightboxIndex(photoIdx)} isEditor={isEditor} onHide={() => hideFile(item.id)} />
+          return <PhotoCard key={item.id} item={item} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
         })}
       </div>
 
@@ -403,6 +430,31 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         <span style={{ fontSize: '11px', color: t.subtle, letterSpacing: '0.06em' }}>galerie.mots-damour.fr</span>
         <span style={{ fontSize: '11px', color: t.subtle }}>Accès protégé · Lien valable 12 mois</span>
       </div>
+
+      {/* Share modal */}
+      {shareOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShareOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: dark ? '#2a2a2a' : 'white', borderRadius: '16px', padding: '32px', maxWidth: '400px', width: '90%', position: 'relative' }}>
+            <button onClick={() => setShareOpen(false)} style={{ position: 'absolute', top: '12px', right: '16px', background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: t.muted }}>x</button>
+            <h3 style={{ fontSize: '14px', fontStyle: 'italic', marginBottom: '20px', color: t.text, fontFamily: "'Poppins', sans-serif" }}>Partager la galerie</h3>
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ fontSize: '10px', color: t.muted, fontFamily: 'Arial', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Lien</p>
+              <p style={{ fontSize: '13px', color: t.text, fontFamily: 'Arial', wordBreak: 'break-all' }}>https://galerie.mots-damour.fr/galerie/{slug}</p>
+            </div>
+            <button onClick={() => {
+              navigator.clipboard.writeText(`https://galerie.mots-damour.fr/galerie/${slug}`)
+              setShareOpen(false)
+            }} style={{
+              width: '100%', padding: '12px', background: '#e97872', color: 'white', border: 'none',
+              borderRadius: '20px', fontSize: '11px', fontFamily: "'Poppins', sans-serif",
+              letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', marginTop: '8px',
+            }}>
+              Copier le lien
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightboxItem && (
@@ -482,71 +534,59 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   )
 }
 
-function VideoCard({ item, isEditor, onHide }: { item: MediaFile; isEditor: boolean; onHide: () => void }) {
+function VideoCard({ item, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
   return (
-    <div style={{ width: '100%', position: 'relative' }}>
+    <div style={{ width: '100%', position: 'relative', opacity: isHidden ? 0.4 : 1 }}>
       <video
-        controls
+        controls={!isHidden}
         playsInline
         preload="metadata"
         src={`/api/proxy/${item.id}`}
         poster={`/api/proxy/${item.id}?thumb=1`}
         style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }}
       />
-      <a
-        href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}.mp4`}
-        download
-        style={{
-          display: 'block',
-          width: '100%',
-          marginTop: '8px',
-          padding: '8px 0',
-          background: '#e97872',
-          color: 'white',
-          border: 'none',
-          borderRadius: '20px',
-          fontFamily: 'Poppins, sans-serif',
-          fontSize: '11px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          textAlign: 'center',
-          textDecoration: 'none',
-          cursor: 'pointer',
-        }}
-      >
-        Telecharger
-      </a>
-      {isEditor && (
-        <button
-          onClick={onHide}
+      {!isHidden && (
+        <a
+          href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}.mp4`}
+          download
           style={{
-            position: 'absolute', top: '8px', right: '8px',
-            background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none',
-            borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            display: 'block', width: '100%', marginTop: '8px', padding: '8px 0',
+            background: '#e97872', color: 'white', border: 'none', borderRadius: '20px',
+            fontFamily: 'Poppins, sans-serif', fontSize: '11px', textTransform: 'uppercase',
+            letterSpacing: '0.06em', textAlign: 'center', textDecoration: 'none', cursor: 'pointer',
           }}
-          title="Masquer ce media"
-        >X</button>
+        >Telecharger</a>
+      )}
+      {isEditor && !isHidden && (
+        <button onClick={onHide} style={{
+          position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white',
+          border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} title="Masquer">X</button>
+      )}
+      {isEditor && isHidden && (
+        <button onClick={onUnhide} style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          background: '#e97872', color: 'white', border: 'none', borderRadius: '20px',
+          padding: '8px 20px', fontSize: '11px', fontFamily: 'Poppins, sans-serif',
+          textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
+        }}>Restaurer</button>
       )}
     </div>
   )
 }
 
-function PhotoCard({ item, onOpen, isEditor, onHide }: { item: MediaFile; onOpen: () => void; isEditor: boolean; onHide: () => void }) {
+function PhotoCard({ item, onOpen, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; onOpen: () => void; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
   const [hovered, setHovered] = useState(false)
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onOpen}
-      style={{ position: 'relative', aspectRatio: '9/16', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', width: '100%' }}
+      style={{ position: 'relative', aspectRatio: '9/16', borderRadius: '10px', overflow: 'hidden', cursor: isHidden ? 'default' : 'pointer', width: '100%', opacity: isHidden ? 0.4 : 1 }}
     >
-      <img
-        src={item.streamUrl}
-        alt=""
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-      />
-      {hovered && (
+      <img src={item.streamUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      {hovered && !isHidden && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -554,18 +594,20 @@ function PhotoCard({ item, onOpen, isEditor, onHide }: { item: MediaFile; onOpen
           </svg>
         </div>
       )}
-      {isEditor && (
-        <button
-          onClick={e => { e.stopPropagation(); onHide() }}
-          style={{
-            position: 'absolute', top: '8px', right: '8px',
-            background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none',
-            borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 10,
-          }}
-          title="Masquer ce media"
-        >X</button>
+      {isEditor && !isHidden && (
+        <button onClick={e => { e.stopPropagation(); onHide() }} style={{
+          position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white',
+          border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+        }} title="Masquer">X</button>
+      )}
+      {isEditor && isHidden && (
+        <button onClick={e => { e.stopPropagation(); onUnhide() }} style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          background: '#e97872', color: 'white', border: 'none', borderRadius: '20px',
+          padding: '8px 20px', fontSize: '11px', fontFamily: 'Poppins, sans-serif',
+          textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', zIndex: 10,
+        }}>Restaurer</button>
       )}
     </div>
   )

@@ -39,6 +39,7 @@ export async function GET(
         name: f.name.replace(/\.[^/.]+$/, ''),
         size: f.size,
         type: f.mediaType,
+        hidden: hiddenFiles.has(String(f.fileid)),
         streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
         downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
         thumbUrl: f.mediaType === 'video' ? `/api/proxy/${f.fileid}?thumb=1` : undefined,
