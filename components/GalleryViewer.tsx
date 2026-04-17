@@ -448,8 +448,6 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 }
 
 function VideoCard({ item }: { item: MediaFile }) {
-  const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-
   return (
     <div style={{ width: '100%' }}>
       <video
@@ -458,9 +456,7 @@ function VideoCard({ item }: { item: MediaFile }) {
         preload="metadata"
         style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }}
       >
-        {isSafari ? (
-          <source src={`/api/proxy/${item.id}?hls=1`} type="application/x-mpegURL" />
-        ) : null}
+        <source src={`/api/proxy/${item.id}?hls=1`} type="video/mp4" />
         <source src={`/api/proxy/${item.id}`} type="video/mp4" />
       </video>
     </div>
