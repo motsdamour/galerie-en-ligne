@@ -10,6 +10,7 @@ type MediaFile = {
   streamUrl: string
   downloadUrl: string
   thumbUrl?: string
+  hlsUrl?: string | null
   type: 'video' | 'image'
 }
 
@@ -457,9 +458,13 @@ function VideoCard({ item }: { item: MediaFile }) {
         controls
         playsInline
         preload="metadata"
-        src={item.streamUrl || `/api/proxy/${item.id}`}
         style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }}
-      />
+      >
+        {item.hlsUrl && (
+          <source src={item.hlsUrl} type="application/x-mpegURL" />
+        )}
+        <source src={item.streamUrl || `/api/proxy/${item.id}`} type="video/mp4" />
+      </video>
     </div>
   )
 }

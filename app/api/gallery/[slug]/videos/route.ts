@@ -36,8 +36,10 @@ export async function GET(
       videos: await Promise.all(folder.videos.map(async (f) => {
         let streamUrl = `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`
 
-        // Pour les vidéos : URL pCloud directe (Safari iOS a besoin de 206 + content-length)
+        let hlsUrl: string | null = null
+
         if (f.mediaType === 'video' && pcloudToken) {
+          // URL MP4 directe pCloud
           try {
             const linkRes = await fetch(
               `https://eapi.pcloud.com/getfilelink?auth=${pcloudToken}&fileid=${f.fileid}&forcedownload=0&contenttype=video/mp4`
@@ -45,6 +47,17 @@ export async function GET(
             const linkData = await linkRes.json()
             if (linkData.result === 0) {
               streamUrl = `https://${linkData.hosts[0]}${linkData.path}`
+            }
+          } catch {}
+
+          // URL HLS .m3u8 pour Safari iOS
+          try {
+            const hlsRes = await fetch(
+              `https://eapi.pcloud.com/gethlslink?auth=${pcloudToken}&fileid=${f.fileid}`
+            )
+            const hlsData = await hlsRes.json()
+            if (hlsData.result === 0) {
+              hlsUrl = `https://${hlsData.hosts[0]}${hlsData.path}`
             }
           } catch {}
         }
@@ -55,6 +68,7 @@ export async function GET(
           size: f.size,
           type: f.mediaType,
           streamUrl,
+          hlsUrl,
           downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
           thumbUrl: f.mediaType === 'video' ? `/api/proxy/${f.fileid}?thumb=1` : undefined,
         }
