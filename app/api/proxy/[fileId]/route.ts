@@ -20,33 +20,28 @@ export async function GET(
   const thumb = url.searchParams.get('thumb') === '1'
   const filename = url.searchParams.get('filename') ?? ''
 
-  // Thumbnail via getthumb
+  // Thumbnail via getthumb — retourne directement le JPEG binaire
   if (thumb) {
-    let pcloudUrl: string
     try {
       const res = await fetch(
         `https://eapi.pcloud.com/getthumb?auth=${token}&fileid=${fileIdNum}&size=400x600&crop=1&type=jpg`
       )
-      const data = await res.json() as { result?: number; error?: string; hosts?: string[]; path?: string }
-      if (data.error || !data.hosts?.[0] || !data.path) {
-        console.error('[proxy] getthumb error:', data.error ?? 'réponse invalide')
-        return new Response(`Erreur pCloud thumb: ${data.error ?? 'réponse invalide'}`, { status: 502 })
+      if (!res.ok) {
+        console.error('[proxy] getthumb error:', res.status)
+        return new Response('Erreur pCloud thumb', { status: 502 })
       }
-      pcloudUrl = `https://${data.hosts[0]}${data.path}`
+      return new Response(res.body, {
+        status: 200,
+        headers: {
+          'content-type': 'image/jpeg',
+          'cache-control': 'public, max-age=86400',
+          'x-content-type-options': 'nosniff',
+        },
+      })
     } catch (err) {
       console.error('[proxy] getthumb fetch error:', err)
       return new Response('Erreur pCloud thumb', { status: 502 })
     }
-
-    const upstream = await fetch(pcloudUrl)
-    return new Response(upstream.body, {
-      status: upstream.status,
-      headers: {
-        'content-type': upstream.headers.get('content-type') ?? 'image/jpeg',
-        'cache-control': 'public, max-age=86400',
-        'x-content-type-options': 'nosniff',
-      },
-    })
   }
 
   // Fichier principal via getfilelink
