@@ -135,10 +135,10 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
       {/* Nav */}
       <nav style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background 0.2s' }}>
-        {/* Logo inline SVG — texte change selon le mode */}
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" fill="none" width="100" height="27">
+        {/* Logo — contenu exact de public/logo.svg, attributs camelCase pour JSX */}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" fill="none" width="110" height="30">
           <path d="M24 36 C24 36, 8 26, 8 17 C8 11.5, 12.5 8, 17 8 C19.8 8, 22.2 9.4, 24 11.6 C25.8 9.4, 28.2 8, 31 8 C35.5 8, 40 11.5, 40 17 C40 26, 24 36, 24 36Z" fill="#e97872"/>
-          <text x="52" y="20" fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic" fontSize="13" fill={t.text} letterSpacing="0.3">Mots</text>
+          <text x="52" y="20" fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic" fontSize="13" fill={dark ? '#f0f0f0' : '#262626'} letterSpacing="0.3">Mots</text>
           <text x="52" y="36" fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic" fontSize="13" fill="#e97872" letterSpacing="0.3">d'Amour</text>
         </svg>
 
@@ -160,12 +160,30 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               borderRadius: '50%',
               width: '32px', height: '32px',
               cursor: 'pointer',
-              fontSize: '15px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'border-color 0.2s',
+              padding: 0,
             }}
           >
-            {dark ? '☀️' : '🌙'}
+            {dark ? (
+              /* Soleil */
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e97872" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="4"/>
+                <line x1="12" y1="2" x2="12" y2="5"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+                <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
+                <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+                <line x1="2" y1="12" x2="5" y2="12"/>
+                <line x1="19" y1="12" x2="22" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
+                <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+              </svg>
+            ) : (
+              /* Lune */
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#e97872">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            )}
           </button>
 
           {/* Tout télécharger */}
