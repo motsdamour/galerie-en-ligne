@@ -94,7 +94,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       {/* Nav */}
       <nav style={{ background: 'var(--cream)', borderBottom: '0.5px solid var(--border)', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Logo */}
-        <img src="/logo.svg" alt="Mots d'Amour" style={{ width: '100px', height: 'auto' }} />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" fill="none" width="100" height="27">
+          <path d="M24 36 C24 36, 8 26, 8 17 C8 11.5, 12.5 8, 17 8 C19.8 8, 22.2 9.4, 24 11.6 C25.8 9.4, 28.2 8, 31 8 C35.5 8, 40 11.5, 40 17 C40 26, 24 36, 24 36Z" fill="#e97872"/>
+          <text x="52" y="20" fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic" fontSize="13" fill="#3c3c3b" letterSpacing="0.3">Mots</text>
+          <text x="52" y="36" fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic" fontSize="13" fill="#e97872" letterSpacing="0.3">d'Amour</text>
+        </svg>
 
         {event && (
           <div style={{ textAlign: 'center' }}>

@@ -36,12 +36,8 @@ export async function GET(
         name: f.name.replace(/\.[^/.]+$/, ''),
         size: f.size,
         type: f.mediaType,
-        streamUrl: f.mediaType === 'video'
-          ? `/api/proxy/video/${f.fileid}`
-          : `/api/proxy/${f.fileid}`,
-        downloadUrl: f.mediaType === 'video'
-          ? `/api/proxy/video/${f.fileid}?download=1`
-          : `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
+        streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
+        downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
       })),
     }))
 

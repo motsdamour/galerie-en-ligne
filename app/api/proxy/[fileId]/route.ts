@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStreamLink, getDownloadLink } from '@/lib/pcloud'
 
+const VIDEO_EXTS = /\.(mp4|mov|avi|webm|mkv)$/i
+
 // Cache in-memory des liens pCloud (valables ~1h côté pCloud)
 const linkCache = new Map<string, { url: string; expires: number }>()
 
@@ -25,7 +27,8 @@ export async function GET(
   }
 
   const download = req.nextUrl.searchParams.get('download') === '1'
-  const filename = req.nextUrl.searchParams.get('filename') ?? fileId
+  const filename = req.nextUrl.searchParams.get('filename') ?? ''
+  const isVideo = VIDEO_EXTS.test(filename)
 
   let pcloudUrl: string
   try {
@@ -34,7 +37,12 @@ export async function GET(
     return new NextResponse('Erreur pCloud', { status: 502 })
   }
 
-  // Transmettre le header Range (seeking vidéo)
+  // Vidéos : redirect 302 vers pCloud — évite la limite 4.5MB de Vercel
+  if (isVideo) {
+    return NextResponse.redirect(pcloudUrl, 302)
+  }
+
+  // Images et autres petits fichiers : stream direct avec bons headers
   const rangeHeader = req.headers.get('range')
   const upstreamHeaders: HeadersInit = {}
   if (rangeHeader) upstreamHeaders['Range'] = rangeHeader
@@ -47,7 +55,7 @@ export async function GET(
   }
 
   if (!upstream.ok && upstream.status !== 206) {
-    // Invalider le cache et réessayer une fois
+    // Lien expiré : invalider le cache et réessayer
     linkCache.delete(`${download ? 'dl' : 'stream'}-${fileIdNum}`)
     try {
       const freshUrl = await resolveLink(fileIdNum, download)
@@ -58,8 +66,7 @@ export async function GET(
   }
 
   const resHeaders = new Headers()
-  const contentType = upstream.headers.get('content-type') ?? 'application/octet-stream'
-  resHeaders.set('content-type', contentType)
+  resHeaders.set('content-type', upstream.headers.get('content-type') ?? 'application/octet-stream')
 
   const contentLength = upstream.headers.get('content-length')
   if (contentLength) resHeaders.set('content-length', contentLength)
@@ -70,7 +77,7 @@ export async function GET(
   const acceptRanges = upstream.headers.get('accept-ranges')
   if (acceptRanges) resHeaders.set('accept-ranges', acceptRanges)
 
-  if (download) {
+  if (download && filename) {
     resHeaders.set('content-disposition', `attachment; filename="${filename}"`)
   }
 
