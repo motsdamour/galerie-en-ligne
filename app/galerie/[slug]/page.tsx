@@ -42,6 +42,7 @@ export default async function GalleryPage({
         params={{ slug }}
         coupleName={event.couple_name}
         eventDate={event.event_date}
+        expiresAt={event.expires_at}
       />
     )
   }

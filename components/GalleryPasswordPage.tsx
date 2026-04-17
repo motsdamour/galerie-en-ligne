@@ -7,21 +7,21 @@ export default function GalleryPasswordPage({
   params,
   coupleName,
   eventDate,
+  expiresAt,
 }: {
   params: { slug: string }
   coupleName: string
   eventDate: string
+  expiresAt?: string
 }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const formattedDate = new Date(eventDate).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  const daysLeft = expiresAt
+    ? Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 365
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -47,79 +47,93 @@ export default function GalleryPasswordPage({
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--cream)',
+      background: 'linear-gradient(180deg, #ffffff 0%, #fdf5f4 50%, #fbeae8 100%)',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '24px',
     }}>
       <div style={{
         background: 'white',
-        border: '0.5px solid var(--border)',
-        borderRadius: '16px',
+        border: '0.5px solid #e8e0d8',
+        borderRadius: '20px',
         padding: '48px 40px',
         width: '100%',
         maxWidth: '420px',
         textAlign: 'center',
+        boxShadow: '0 8px 40px rgba(233,120,114,0.08)',
       }}>
         {/* Logo */}
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ margin: '0 auto 24px' }}>
-          <circle cx="24" cy="24" r="22" stroke="#c9748a" strokeWidth="0.8" opacity="0.4"/>
-          <path d="M24 12 C18 12, 12 17, 12 23 C12 30, 18 35, 24 40 C30 35, 36 30, 36 23 C36 17, 30 12, 24 12Z" fill="#c9748a" opacity="0.12"/>
-          <path d="M24 12 C21 15, 20 18, 20 23 C20 28, 21 33, 24 40" stroke="#c9748a" strokeWidth="0.8" opacity="0.5" fill="none"/>
-          <path d="M24 12 C27 15, 28 18, 28 23 C28 28, 27 33, 24 40" stroke="#c9748a" strokeWidth="0.8" opacity="0.5" fill="none"/>
-          <ellipse cx="17" cy="21" rx="4" ry="5" fill="#c9748a" opacity="0.18" transform="rotate(-20 17 21)"/>
-          <ellipse cx="31" cy="21" rx="4" ry="5" fill="#c9748a" opacity="0.18" transform="rotate(20 31 21)"/>
-        </svg>
+        <img
+          src="/logo.svg"
+          alt="Mots d'Amour"
+          width="120"
+          height="68"
+          style={{ display: 'block', margin: '0 auto 28px' }}
+        />
 
-        <p style={{ fontSize: '10px', letterSpacing: '0.16em', color: 'var(--rose)', textTransform: 'uppercase', fontFamily: 'Arial', marginBottom: '8px' }}>
-          Galerie privée
+        <p style={{ fontSize: '10px', letterSpacing: '0.16em', color: '#e97872', textTransform: 'uppercase', fontFamily: "'Poppins', sans-serif", marginBottom: '8px' }}>
+          Galerie privee
         </p>
-        <h1 style={{ fontSize: '24px', fontWeight: 400, fontStyle: 'italic', color: 'var(--text-dark)', marginBottom: '4px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 400, fontStyle: 'italic', color: '#3c3c3b', marginBottom: '12px', fontFamily: "'Poppins', sans-serif" }}>
           {coupleName}
         </h1>
-        <p style={{ fontSize: '13px', color: 'var(--brown-muted)', fontFamily: 'Arial', marginBottom: '32px' }}>
-          {formattedDate}
-        </p>
 
-        <div className="ornament" style={{ marginBottom: '32px' }}>
-          <div className="ornament-line"/>
-          <div className="ornament-diamond"/>
-          <div className="ornament-line"/>
+        {daysLeft > 0 && (
+          <p style={{ fontSize: '11px', color: '#b4b2a9', fontFamily: "'Poppins', sans-serif", marginBottom: '28px' }}>
+            Il reste {daysLeft} jour{daysLeft > 1 ? 's' : ''} d'acces
+          </p>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '28px' }}>
+          <div style={{ width: '40px', height: '0.5px', background: '#e97872', opacity: 0.4 }}/>
+          <div style={{ width: '5px', height: '5px', background: '#e97872', transform: 'rotate(45deg)', opacity: 0.5 }}/>
+          <div style={{ width: '40px', height: '0.5px', background: '#e97872', opacity: 0.4 }}/>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <p style={{ fontSize: '13px', color: 'var(--brown-muted)', fontFamily: 'Arial', marginBottom: '16px' }}>
-            Entrez le mot de passe pour accéder à vos souvenirs
+          <p style={{ fontSize: '13px', color: '#888780', fontFamily: "'Poppins', sans-serif", marginBottom: '16px' }}>
+            Entrez le mot de passe pour acceder a vos souvenirs
           </p>
           <input
             type="password"
             placeholder="Mot de passe"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            style={{ marginBottom: '12px', textAlign: 'center', letterSpacing: '0.1em' }}
+            style={{
+              marginBottom: '12px', textAlign: 'center', letterSpacing: '0.1em',
+              width: '100%', padding: '14px', border: '0.5px solid #e8e0d8',
+              borderRadius: '12px', fontSize: '14px', fontFamily: "'Poppins', sans-serif",
+              outline: 'none',
+            }}
             required
             autoFocus
           />
           {error && (
-            <p style={{ fontSize: '12px', color: '#c9748a', fontFamily: 'Arial', marginBottom: '12px' }}>
+            <p style={{ fontSize: '12px', color: '#e97872', fontFamily: "'Poppins', sans-serif", marginBottom: '12px' }}>
               {error}
             </p>
           )}
           <button
             type="submit"
-            className="btn-rose-solid"
             disabled={loading}
-            style={{ width: '100%', opacity: loading ? 0.6 : 1 }}
+            style={{
+              width: '100%', padding: '14px', background: '#e97872', color: 'white',
+              border: 'none', borderRadius: '25px', fontSize: '12px',
+              fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em',
+              textTransform: 'uppercase', cursor: loading ? 'default' : 'pointer',
+              opacity: loading ? 0.6 : 1,
+            }}
           >
-            {loading ? 'Vérification...' : 'Accéder à la galerie'}
+            {loading ? 'Verification...' : 'Acceder a notre galerie'}
           </button>
         </form>
-
-        <p style={{ fontSize: '11px', color: 'var(--brown-light)', fontFamily: 'Arial', marginTop: '24px' }}>
-          Le mot de passe vous a été communiqué par les mariés
-        </p>
       </div>
+
+      <p style={{ fontSize: '11px', color: '#b4b2a9', fontFamily: "'Poppins', sans-serif", marginTop: '32px', letterSpacing: '0.06em' }}>
+        Galerie privee · Mots d'Amour
+      </p>
     </div>
   )
 }
