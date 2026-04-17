@@ -44,6 +44,7 @@ export async function GET(
       headers: {
         'content-type': upstream.headers.get('content-type') ?? 'image/jpeg',
         'cache-control': 'public, max-age=86400',
+        'x-content-type-options': 'nosniff',
       },
     })
   }
@@ -67,7 +68,7 @@ export async function GET(
     return new Response('Erreur pCloud', { status: 502 })
   }
 
-  // Transmettre le header Range si présent (seeking vidéo)
+  // Toujours forwarder le header Range (essentiel pour Safari iOS / seeking vidéo)
   const rangeHeader = req.headers.get('range')
   const upstreamHeaders: HeadersInit = {}
   if (rangeHeader) upstreamHeaders['Range'] = rangeHeader
@@ -81,7 +82,12 @@ export async function GET(
   }
 
   const resHeaders = new Headers()
-  resHeaders.set('content-type', upstream.headers.get('content-type') ?? 'application/octet-stream')
+
+  // Content-Type : forcer video/mp4 pour les fichiers .mp4
+  const lowerFilename = filename.toLowerCase()
+  const isMP4 = lowerFilename.endsWith('.mp4') || pcloudUrl.toLowerCase().includes('.mp4')
+  const upstreamCT = upstream.headers.get('content-type') ?? 'application/octet-stream'
+  resHeaders.set('content-type', isMP4 ? 'video/mp4' : upstreamCT)
 
   const contentLength = upstream.headers.get('content-length')
   if (contentLength) resHeaders.set('content-length', contentLength)
@@ -89,8 +95,10 @@ export async function GET(
   const contentRange = upstream.headers.get('content-range')
   if (contentRange) resHeaders.set('content-range', contentRange)
 
-  const acceptRanges = upstream.headers.get('accept-ranges')
-  if (acceptRanges) resHeaders.set('accept-ranges', acceptRanges)
+  // Toujours indiquer le support des range requests (requis pour Safari iOS)
+  resHeaders.set('accept-ranges', 'bytes')
+
+  resHeaders.set('x-content-type-options', 'nosniff')
 
   if (download && filename) {
     resHeaders.set('content-disposition', `attachment; filename="${filename}"`)
@@ -98,8 +106,8 @@ export async function GET(
 
   resHeaders.set('cache-control', 'private, max-age=3600')
 
-  return new Response(upstream.body, {
-    status: upstream.status,
-    headers: resHeaders,
-  })
+  // Retourner 206 si le browser avait envoyé un Range et que pCloud répond 206
+  const status = rangeHeader && upstream.status === 206 ? 206 : upstream.status
+
+  return new Response(upstream.body, { status, headers: resHeaders })
 }
