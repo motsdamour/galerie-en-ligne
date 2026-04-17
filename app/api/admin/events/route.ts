@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword, verifyAdminToken } from '@/lib/auth'
+import { sendNewGalleryEmail } from '@/lib/email'
 
 function generateSlug(coupleName: string, date: string) {
   const names = coupleName
@@ -62,6 +63,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  try {
+    await sendNewGalleryEmail({ couple_name: coupleName, slug, password_plain: password })
+  } catch (err) {
+    console.error('Email error:', err)
+  }
+
   return NextResponse.json({
     id: data.id,
     slug,
@@ -81,10 +88,8 @@ export async function GET(req: NextRequest) {
   const db = supabaseAdmin()
   const { data } = await db
     .from('events')
-    .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at, password_plain')
+    .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at, password_plain, user_id')
     .order('created_at', { ascending: false })
-
-  console.log('events data:', JSON.stringify(data?.slice(0, 2)))
 
   return NextResponse.json(data)
 }

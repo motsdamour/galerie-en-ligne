@@ -36,6 +36,10 @@ export async function PATCH(
     updates.couple_name = body.couple_name.trim()
   }
 
+  if (body.user_id !== undefined) {
+    updates.user_id = body.user_id || null
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Aucun champ à mettre à jour' }, { status: 400 })
   }

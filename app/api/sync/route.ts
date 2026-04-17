@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword } from '@/lib/auth'
+import { sendNewGalleryEmail } from '@/lib/email'
 
 const PCLOUD_API = 'https://eapi.pcloud.com'
 
@@ -110,6 +111,12 @@ export async function GET(req: NextRequest) {
     }
 
     created.push(coupleName)
+
+    try {
+      await sendNewGalleryEmail({ couple_name: coupleName, slug, password_plain: password })
+    } catch (err) {
+      console.error('Email error:', err)
+    }
   }
 
   return NextResponse.json({ created, skipped })

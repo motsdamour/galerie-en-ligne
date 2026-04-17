@@ -12,6 +12,13 @@ type Event = {
   expires_at: string
   created_at: string
   password_plain: string | null
+  user_id: string | null
+}
+
+type User = {
+  id: string
+  name: string
+  firstname: string
 }
 
 type CreatedEvent = {
@@ -33,10 +40,11 @@ export default function AdminPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState<{ id: string; value: string } | null>(null)
   const [addingPwd, setAddingPwd] = useState<{ id: string; value: string } | null>(null)
+  const [users, setUsers] = useState<User[]>([])
 
   useEffect(() => {
     const t = localStorage.getItem('admin_token')
-    if (t) { setToken(t); loadEvents(t) }
+    if (t) { setToken(t); loadEvents(t); loadUsers(t) }
   }, [])
 
   async function login(e: React.FormEvent) {
@@ -60,6 +68,21 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/events', { headers: { Authorization: `Bearer ${t}` } })
     const data = await res.json()
     if (Array.isArray(data)) setEvents(data)
+  }
+
+  async function loadUsers(t: string) {
+    const res = await fetch('/api/admin/users', { headers: { Authorization: `Bearer ${t}` } })
+    const data = await res.json()
+    if (Array.isArray(data)) setUsers(data)
+  }
+
+  async function assignUser(eventId: string, userId: string | null) {
+    await fetch(`/api/admin/events/${eventId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ user_id: userId }),
+    })
+    if (token) loadEvents(token)
   }
 
   async function saveName(id: string, couple_name: string) {
@@ -168,7 +191,10 @@ export default function AdminPage() {
             <p style={{ fontSize: '10px', letterSpacing: '0.16em', color: 'var(--rose)', textTransform: 'uppercase', fontFamily: 'Arial', marginBottom: '4px' }}>Back-office</p>
             <h1 style={{ fontSize: '24px', fontStyle: 'italic' }}>Mots d'Amour</h1>
           </div>
-          <button className="btn-rose" onClick={() => { localStorage.removeItem('admin_token'); setToken(null) }}>Déconnexion</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <a href="/admin/users" className="btn-rose" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>Loueurs</a>
+            <button className="btn-rose" onClick={() => { localStorage.removeItem('admin_token'); setToken(null) }}>Déconnexion</button>
+          </div>
         </div>
 
         {/* Formulaire création */}
@@ -238,7 +264,7 @@ export default function AdminPage() {
               <table style={{ width: '100%', fontSize: '13px', fontFamily: 'Arial', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '0.5px solid var(--border)' }}>
-                    {['Événement', 'Date', 'Type', 'Statut', 'Lien', 'Mot de passe', 'Actions'].map(h => (
+                    {['Événement', 'Date', 'Type', 'Loueur', 'Statut', 'Lien', 'Mot de passe', 'Actions'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--brown-muted)', fontWeight: 400, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                     ))}
                   </tr>
@@ -273,6 +299,18 @@ export default function AdminPage() {
                         </td>
                         <td style={{ padding: '12px', color: 'var(--brown-muted)' }}>{new Date(ev.event_date).toLocaleDateString('fr-FR')}</td>
                         <td style={{ padding: '12px', color: 'var(--brown-muted)', textTransform: 'capitalize' }}>{ev.event_type}</td>
+                        <td style={{ padding: '12px' }}>
+                          <select
+                            value={ev.user_id || ''}
+                            onChange={e => assignUser(ev.id, e.target.value || null)}
+                            style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '6px', border: '0.5px solid var(--border)', fontFamily: 'Arial', color: 'var(--brown-muted)', background: 'white' }}
+                          >
+                            <option value="">— Aucun —</option>
+                            {users.map(u => (
+                              <option key={u.id} value={u.id}>{u.firstname} {u.name}</option>
+                            ))}
+                          </select>
+                        </td>
                         <td style={{ padding: '12px' }}>
                           <span style={{ background: ev.is_active ? '#e1f5ee' : '#fbeaf0', color: ev.is_active ? '#0f6e56' : '#993556', padding: '3px 10px', borderRadius: '10px', fontSize: '11px' }}>
                             {ev.is_active ? 'Active' : 'Désactivée'}
@@ -332,7 +370,7 @@ export default function AdminPage() {
                       </tr>
                       {editingPwd?.id === ev.id && (
                         <tr key={`${ev.id}-pwd`} style={{ borderBottom: '0.5px solid var(--border)', background: 'var(--cream)' }}>
-                          <td colSpan={7} style={{ padding: '10px 12px' }}>
+                          <td colSpan={8} style={{ padding: '10px 12px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <input
                                 type="text"
