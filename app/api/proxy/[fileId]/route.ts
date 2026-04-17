@@ -25,7 +25,7 @@ export async function GET(
     let pcloudUrl: string
     try {
       const res = await fetch(
-        `https://eapi.pcloud.com/getthumb?auth=${token}&fileid=${fileIdNum}&size=300x500&crop=1&type=jpg`
+        `https://eapi.pcloud.com/getthumb?auth=${token}&fileid=${fileIdNum}&size=400x600&crop=1&type=jpg`
       )
       const data = await res.json() as { result?: number; error?: string; hosts?: string[]; path?: string }
       if (data.error || !data.hosts?.[0] || !data.path) {
