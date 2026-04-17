@@ -38,6 +38,7 @@ export async function GET(
         type: f.mediaType,
         streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
         downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
+        thumbUrl: f.mediaType === 'video' ? `/api/proxy/${f.fileid}?thumb=1` : undefined,
       })),
     }))
 

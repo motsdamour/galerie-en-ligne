@@ -98,6 +98,16 @@ export async function getDownloadLink(fileId: number): Promise<string> {
   return `https://${host}${path}`
 }
 
+// Génère une URL de thumbnail (300x500, recadrée)
+export async function getThumb(fileId: number): Promise<string> {
+  const res = await fetch(
+    `${PCLOUD_API}/getthumb?auth=${TOKEN}&fileid=${fileId}&size=300x500&crop=1&type=jpg`
+  )
+  const data = await res.json()
+  if (data.error) throw new Error(`pCloud error: ${data.error}`)
+  return `https://${data.hosts[0]}${data.path}`
+}
+
 // Génère un lien de streaming (pour le lecteur vidéo)
 export async function getStreamLink(fileId: number): Promise<string> {
   const res = await fetch(

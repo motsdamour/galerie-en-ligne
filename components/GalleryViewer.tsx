@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 type MediaFile = {
   id: number
@@ -8,6 +8,7 @@ type MediaFile = {
   size: number
   streamUrl: string
   downloadUrl: string
+  thumbUrl?: string
   type: 'video' | 'image'
 }
 
@@ -42,8 +43,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState(0)
-  const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null)
-  const playerRef = useRef<HTMLDivElement>(null)
+  const [playingId, setPlayingId] = useState<number | null>(null)
 
   useEffect(() => {
     fetch(`/api/gallery/${slug}/videos`)
@@ -58,12 +58,6 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       .finally(() => setLoading(false))
   }, [slug])
 
-  useEffect(() => {
-    if (selectedMedia && playerRef.current) {
-      playerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [selectedMedia])
-
   const formattedDate = event
     ? new Date(event.eventDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : ''
@@ -71,6 +65,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const currentFolder = folders[activeTab]
   const currentItems = currentFolder?.videos ?? []
   const isPhotosTab = currentFolder ? tabLabel(currentFolder.name) === 'Photos' : false
+
+  function handleTabChange(i: number) {
+    setActiveTab(i)
+    setPlayingId(null)
+  }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)' }}>
@@ -139,7 +138,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           {folders.map((folder, i) => (
             <button
               key={folder.folderid}
-              onClick={() => { setActiveTab(i); setSelectedMedia(null) }}
+              onClick={() => handleTabChange(i)}
               style={{
                 background: activeTab === i ? 'var(--rose)' : 'transparent',
                 color: activeTab === i ? 'white' : 'var(--brown-muted)',
@@ -159,34 +158,6 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         </div>
       )}
 
-      {/* Video Player — above grid */}
-      {selectedMedia && selectedMedia.type === 'video' && (
-        <div ref={playerRef} style={{ margin: '0 28px 20px', background: '#1c1c1c', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '10px 14px', gap: '8px', background: 'rgba(255,255,255,0.06)' }}>
-            <a
-              href={selectedMedia.downloadUrl}
-              download={selectedMedia.name}
-              className="btn-rose"
-              style={{ textDecoration: 'none', fontSize: '11px' }}
-            >
-              Télécharger
-            </a>
-            <button
-              onClick={() => setSelectedMedia(null)}
-              style={{ background: 'transparent', border: '0.5px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.7)', width: '30px', height: '30px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              ×
-            </button>
-          </div>
-          <video
-            src={selectedMedia.streamUrl}
-            controls
-            autoPlay
-            style={{ width: '100%', display: 'block', maxHeight: '520px', background: '#000' }}
-          />
-        </div>
-      )}
-
       {/* Grid */}
       <div className="gallery-grid" style={{ padding: '0 28px 48px' }}>
         {currentItems.map((item) =>
@@ -196,8 +167,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             <VideoCard
               key={item.id}
               item={item}
-              isSelected={selectedMedia?.id === item.id}
-              onPlay={() => setSelectedMedia(item)}
+              isPlaying={playingId === item.id}
+              onPlay={() => setPlayingId(item.id)}
+              onStop={() => setPlayingId(null)}
             />
           )
         )}
@@ -212,20 +184,56 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   )
 }
 
-function VideoCard({ item, isSelected, onPlay }: {
+function VideoCard({ item, isPlaying, onPlay, onStop }: {
   item: MediaFile
-  isSelected: boolean
+  isPlaying: boolean
   onPlay: () => void
+  onStop: () => void
 }) {
   const [hovered, setHovered] = useState(false)
+
+  if (isPlaying) {
+    return (
+      <div style={{
+        aspectRatio: '9/16',
+        background: '#000',
+        borderRadius: '10px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <button
+          onClick={onStop}
+          style={{
+            position: 'absolute', top: '8px', right: '8px', zIndex: 10,
+            background: 'rgba(0,0,0,0.6)', border: '0.5px solid rgba(255,255,255,0.3)',
+            color: 'white', width: '28px', height: '28px', borderRadius: '50%',
+            cursor: 'pointer', fontSize: '16px', lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          ×
+        </button>
+        <video
+          src={item.streamUrl}
+          controls
+          autoPlay
+          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={onPlay}
       style={{
         aspectRatio: '9/16',
         background: '#1c1c1c',
+        backgroundImage: item.thumbUrl ? `url(${item.thumbUrl})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         borderRadius: '10px',
         position: 'relative',
         overflow: 'hidden',
@@ -235,31 +243,32 @@ function VideoCard({ item, isSelected, onPlay }: {
         cursor: 'pointer',
         transition: 'transform 0.15s',
         transform: hovered ? 'scale(1.02)' : 'scale(1)',
-        outline: isSelected ? '2px solid var(--rose)' : 'none',
       }}
-      onClick={onPlay}
     >
-      {/* Play button */}
+      {/* Overlay sombre sur thumbnail */}
+      {item.thumbUrl && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
+      )}
+
+      {/* Bouton play */}
       <div style={{
         width: '50px', height: '50px', borderRadius: '50%',
-        border: `1.5px solid rgba(233,120,114,${hovered ? 1 : 0.5})`,
+        border: `1.5px solid rgba(255,255,255,${hovered ? 0.9 : 0.5})`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: hovered ? 'rgba(233,120,114,0.15)' : 'transparent',
+        background: hovered ? 'rgba(255,255,255,0.15)' : 'transparent',
         transition: 'all 0.15s',
-        zIndex: 1,
+        position: 'relative', zIndex: 1,
       }}>
-        <div style={{ width: 0, height: 0, borderTop: '9px solid transparent', borderBottom: '9px solid transparent', borderLeft: `14px solid rgba(233,120,114,${hovered ? 1 : 0.6})`, marginLeft: '4px' }}/>
+        <div style={{ width: 0, height: 0, borderTop: '9px solid transparent', borderBottom: '9px solid transparent', borderLeft: `14px solid rgba(255,255,255,${hovered ? 1 : 0.7})`, marginLeft: '4px' }}/>
       </div>
 
       {/* Hover overlay */}
       {hovered && (
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+          position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2,
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
           padding: '20px 12px 14px',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '8px',
+          display: 'flex', justifyContent: 'center', gap: '8px',
         }}>
           <button
             className="btn-rose"

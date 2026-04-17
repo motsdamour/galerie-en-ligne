@@ -17,9 +17,38 @@ export async function GET(
 
   const url = new URL(req.url)
   const download = url.searchParams.get('download') === '1'
+  const thumb = url.searchParams.get('thumb') === '1'
   const filename = url.searchParams.get('filename') ?? ''
 
-  // Obtenir le lien pCloud côté serveur (IP du edge node)
+  // Thumbnail via getthumb
+  if (thumb) {
+    let pcloudUrl: string
+    try {
+      const res = await fetch(
+        `https://eapi.pcloud.com/getthumb?auth=${token}&fileid=${fileIdNum}&size=300x500&crop=1&type=jpg`
+      )
+      const data = await res.json() as { result?: number; error?: string; hosts?: string[]; path?: string }
+      if (data.error || !data.hosts?.[0] || !data.path) {
+        console.error('[proxy] getthumb error:', data.error ?? 'réponse invalide')
+        return new Response(`Erreur pCloud thumb: ${data.error ?? 'réponse invalide'}`, { status: 502 })
+      }
+      pcloudUrl = `https://${data.hosts[0]}${data.path}`
+    } catch (err) {
+      console.error('[proxy] getthumb fetch error:', err)
+      return new Response('Erreur pCloud thumb', { status: 502 })
+    }
+
+    const upstream = await fetch(pcloudUrl)
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        'content-type': upstream.headers.get('content-type') ?? 'image/jpeg',
+        'cache-control': 'public, max-age=86400',
+      },
+    })
+  }
+
+  // Fichier principal via getfilelink
   let pcloudUrl: string
   try {
     const res = await fetch(
@@ -28,13 +57,13 @@ export async function GET(
     const data = await res.json() as { result?: number; error?: string; hosts?: string[]; path?: string }
 
     if (data.error || !data.hosts?.[0] || !data.path) {
-      console.error('[proxy] pCloud error:', data.error ?? 'réponse invalide')
+      console.error('[proxy] getfilelink error:', data.error ?? 'réponse invalide')
       return new Response(`Erreur pCloud: ${data.error ?? 'réponse invalide'}`, { status: 502 })
     }
 
     pcloudUrl = `https://${data.hosts[0]}${data.path}`
   } catch (err) {
-    console.error('[proxy] fetch pCloud error:', err)
+    console.error('[proxy] getfilelink fetch error:', err)
     return new Response('Erreur pCloud', { status: 502 })
   }
 
