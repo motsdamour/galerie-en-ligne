@@ -50,14 +50,15 @@ export async function GET(
             }
           } catch {}
 
-          // URL HLS .m3u8 pour Safari iOS
+          // URL HLS .m3u8 pour Safari iOS (proxifié pour éviter CORS)
           try {
             const hlsRes = await fetch(
               `https://eapi.pcloud.com/gethlslink?auth=${pcloudToken}&fileid=${f.fileid}`
             )
             const hlsData = await hlsRes.json()
             if (hlsData.result === 0) {
-              hlsUrl = `https://${hlsData.hosts[0]}${hlsData.path}`
+              const directHlsUrl = `https://${hlsData.hosts[0]}${hlsData.path}`
+              hlsUrl = `/api/hls/stream?url=${encodeURIComponent(directHlsUrl)}`
             }
           } catch {}
         }
