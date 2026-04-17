@@ -31,6 +31,8 @@ export default function AdminPage() {
   const [editingPwd, setEditingPwd] = useState<{ id: string; value: string } | null>(null)
   const [savingPwd, setSavingPwd] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState<{ id: string; value: string } | null>(null)
+  const [addingPwd, setAddingPwd] = useState<{ id: string; value: string } | null>(null)
 
   useEffect(() => {
     const t = localStorage.getItem('admin_token')
@@ -58,6 +60,36 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/events', { headers: { Authorization: `Bearer ${t}` } })
     const data = await res.json()
     if (Array.isArray(data)) setEvents(data)
+  }
+
+  async function saveName(id: string, couple_name: string) {
+    const res = await fetch(`/api/admin/events/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ couple_name }),
+    })
+    if (res.ok) {
+      setEditingName(null)
+      if (token) loadEvents(token)
+    } else {
+      const data = await res.json()
+      alert(data.error)
+    }
+  }
+
+  async function savePasswordPlain(id: string, password_plain: string) {
+    const res = await fetch(`/api/admin/events/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ password_plain }),
+    })
+    if (res.ok) {
+      setAddingPwd(null)
+      if (token) loadEvents(token)
+    } else {
+      const data = await res.json()
+      alert(data.error)
+    }
   }
 
   async function deleteEvent(id: string) {
@@ -206,7 +238,7 @@ export default function AdminPage() {
               <table style={{ width: '100%', fontSize: '13px', fontFamily: 'Arial', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '0.5px solid var(--border)' }}>
-                    {['Couple', 'Date', 'Type', 'Statut', 'Lien', 'Mot de passe', 'Actions'].map(h => (
+                    {['Événement', 'Date', 'Type', 'Statut', 'Lien', 'Mot de passe', 'Actions'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--brown-muted)', fontWeight: 400, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                     ))}
                   </tr>
@@ -215,7 +247,30 @@ export default function AdminPage() {
                   {events.map(ev => (
                     <>
                       <tr key={ev.id} style={{ borderBottom: editingPwd?.id === ev.id ? 'none' : '0.5px solid var(--border)' }}>
-                        <td style={{ padding: '12px', fontStyle: 'italic' }}>{ev.couple_name}</td>
+                        <td style={{ padding: '12px' }}>
+                          {editingName?.id === ev.id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <input
+                                type="text"
+                                value={editingName.value}
+                                onChange={e => setEditingName({ id: ev.id, value: e.target.value })}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && editingName.value.trim()) saveName(ev.id, editingName.value)
+                                  if (e.key === 'Escape') setEditingName(null)
+                                }}
+                                style={{ width: '160px', padding: '4px 8px', fontSize: '13px', fontStyle: 'italic' }}
+                                autoFocus
+                              />
+                              <button onClick={() => editingName.value.trim() && saveName(ev.id, editingName.value)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#0f6e56', fontSize: '15px', padding: '2px', lineHeight: 1 }}>✓</button>
+                              <button onClick={() => setEditingName(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brown-muted)', fontSize: '13px', padding: '2px', lineHeight: 1 }}>✕</button>
+                            </div>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' }}>
+                              {ev.couple_name}
+                              <button onClick={() => setEditingName({ id: ev.id, value: ev.couple_name })} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 2px', fontSize: '11px', opacity: 0.45, lineHeight: 1 }} title="Modifier le nom">✏️</button>
+                            </span>
+                          )}
+                        </td>
                         <td style={{ padding: '12px', color: 'var(--brown-muted)' }}>{new Date(ev.event_date).toLocaleDateString('fr-FR')}</td>
                         <td style={{ padding: '12px', color: 'var(--brown-muted)', textTransform: 'capitalize' }}>{ev.event_type}</td>
                         <td style={{ padding: '12px' }}>
@@ -227,7 +282,25 @@ export default function AdminPage() {
                           <a href={`/galerie/${ev.slug}`} target="_blank" style={{ color: 'var(--rose)', textDecoration: 'none' }}>Voir →</a>
                         </td>
                         <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--brown-muted)' }}>
-                          {ev.password_plain ?? <span style={{ color: 'var(--brown-light)', fontStyle: 'italic', fontFamily: 'Arial' }}>—</span>}
+                          {ev.password_plain ? ev.password_plain : addingPwd?.id === ev.id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <input
+                                type="text"
+                                placeholder="Mot de passe"
+                                value={addingPwd.value}
+                                onChange={e => setAddingPwd({ id: ev.id, value: e.target.value })}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && addingPwd.value) savePasswordPlain(ev.id, addingPwd.value)
+                                  if (e.key === 'Escape') setAddingPwd(null)
+                                }}
+                                style={{ width: '110px', padding: '4px 8px', fontSize: '12px', fontFamily: 'monospace' }}
+                                autoFocus
+                              />
+                              <button onClick={() => addingPwd.value && savePasswordPlain(ev.id, addingPwd.value)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#0f6e56', fontSize: '15px', padding: '2px', lineHeight: 1 }}>✓</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setAddingPwd({ id: ev.id, value: '' })} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brown-light)', fontStyle: 'italic', fontFamily: 'Arial', fontSize: '12px', padding: 0 }}>Ajouter…</button>
+                          )}
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -255,7 +328,7 @@ export default function AdminPage() {
                       </tr>
                       {editingPwd?.id === ev.id && (
                         <tr key={`${ev.id}-pwd`} style={{ borderBottom: '0.5px solid var(--border)', background: 'var(--cream)' }}>
-                          <td colSpan={6} style={{ padding: '10px 12px' }}>
+                          <td colSpan={7} style={{ padding: '10px 12px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <input
                                 type="text"

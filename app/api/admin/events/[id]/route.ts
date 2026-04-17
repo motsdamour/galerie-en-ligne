@@ -14,18 +14,36 @@ export async function PATCH(
   }
 
   const { id } = await params
-  const { password } = await req.json()
+  const body = await req.json()
+  const updates: Record<string, unknown> = {}
 
-  if (!password || password.length < 4) {
-    return NextResponse.json({ error: 'Mot de passe trop court (min 4 caractères)' }, { status: 400 })
+  if (body.password !== undefined) {
+    if (!body.password || body.password.length < 4) {
+      return NextResponse.json({ error: 'Mot de passe trop court (min 4 caractères)' }, { status: 400 })
+    }
+    updates.password_hash = await hashPassword(body.password)
+    updates.password_plain = body.password
   }
 
-  const passwordHash = await hashPassword(password)
+  if (body.password_plain !== undefined && body.password === undefined) {
+    updates.password_plain = body.password_plain
+  }
+
+  if (body.couple_name !== undefined) {
+    if (!body.couple_name.trim()) {
+      return NextResponse.json({ error: 'Nom invalide' }, { status: 400 })
+    }
+    updates.couple_name = body.couple_name.trim()
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'Aucun champ à mettre à jour' }, { status: 400 })
+  }
 
   const db = supabaseAdmin()
   const { error } = await db
     .from('events')
-    .update({ password_hash: passwordHash })
+    .update(updates)
     .eq('id', id)
 
   if (error) {
