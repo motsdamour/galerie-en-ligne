@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import JSZip from 'jszip'
 
 type MediaFile = {
   id: number
@@ -50,23 +51,18 @@ const DARK: Theme = {
   subtle: '#666666',
 }
 
-const DL_BTN: React.CSSProperties = {
-  display: 'block',
-  width: '100%',
-  marginTop: '8px',
-  padding: '8px 16px',
-  background: '#e97872',
-  color: 'white',
-  border: 'none',
-  borderRadius: '20px',
-  fontFamily: "'Poppins', sans-serif",
-  fontSize: '11px',
-  textTransform: 'uppercase',
+const NAV_BTN: React.CSSProperties = {
+  background: 'transparent',
+  border: '0.5px solid #e97872',
+  color: '#e97872',
+  padding: '6px 14px',
+  borderRadius: '14px',
+  fontSize: '10px',
   letterSpacing: '0.06em',
-  textAlign: 'center',
-  textDecoration: 'none',
+  textTransform: 'uppercase',
   cursor: 'pointer',
-  boxSizing: 'border-box',
+  fontFamily: "'Poppins', sans-serif",
+  whiteSpace: 'nowrap',
 }
 
 function tabLabel(name: string): string {
@@ -82,6 +78,33 @@ function tabLabel(name: string): string {
   return map[normalized] ?? map[key] ?? name.charAt(0).toUpperCase() + name.slice(1)
 }
 
+function slugify(str: string) {
+  return str.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+async function downloadZip(files: MediaFile[], zipName: string, onProgress: (done: number, total: number) => void) {
+  const zip = new JSZip()
+  let done = 0
+  await Promise.all(files.map(async (file) => {
+    const res = await fetch(`/api/proxy/${file.id}?filename=${encodeURIComponent(file.name)}`)
+    const blob = await res.blob()
+    const ext = file.name.includes('.') ? '' : (file.type === 'image' ? '.jpg' : '.mp4')
+    zip.file(`${file.name}${ext}`, blob)
+    done++
+    onProgress(done, files.length)
+  }))
+  const content = await zip.generateAsync({ type: 'blob' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(content)
+  a.download = zipName
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(a.href)
+}
+
 export default function GalleryViewer({ slug }: { slug: string }) {
   const [event, setEvent] = useState<GalleryEvent | null>(null)
   const [folders, setFolders] = useState<Folder[]>([])
@@ -90,6 +113,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState(0)
   const [dark, setDark] = useState(false)
+  const [zipProgress, setZipProgress] = useState<Record<string, { done: number; total: number } | null>>({})
 
   const t = dark ? DARK : LIGHT
 
@@ -114,6 +138,33 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const currentItems = currentFolder?.videos ?? []
   const isPhotosTab = currentFolder ? tabLabel(currentFolder.name) === 'Photos' : false
 
+  // Trouver un dossier par son label
+  function findFolder(label: string) {
+    return folders.find(f => tabLabel(f.name) === label)
+  }
+
+  async function handleZip(label: string, zipName: string) {
+    const folder = findFolder(label)
+    if (!folder || folder.videos.length === 0) return
+    const key = label
+    setZipProgress(p => ({ ...p, [key]: { done: 0, total: folder.videos.length } }))
+    try {
+      await downloadZip(folder.videos, zipName, (done, total) => {
+        setZipProgress(p => ({ ...p, [key]: { done, total } }))
+      })
+    } finally {
+      setZipProgress(p => ({ ...p, [key]: null }))
+    }
+  }
+
+  function zipBtnLabel(label: string, defaultLabel: string) {
+    const p = zipProgress[label]
+    if (p) return `${p.done}/${p.total}…`
+    return defaultLabel
+  }
+
+  const coupleName = event ? slugify(event.coupleName) : 'galerie'
+
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
       <div style={{ textAlign: 'center' }}>
@@ -134,22 +185,51 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     <div style={{ minHeight: '100vh', background: t.bg, color: t.text, transition: 'background 0.2s, color 0.2s' }}>
 
       {/* Nav */}
-      <nav style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background 0.2s' }}>
-        {/* Logo — contenu exact de public/logo.svg, attributs camelCase pour JSX */}
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" fill="none" width="110" height="30">
+      <nav style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, padding: '12px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', transition: 'background 0.2s' }}>
+        {/* Logo */}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" fill="none" width="110" height="30" style={{ flexShrink: 0 }}>
           <path d="M24 36 C24 36, 8 26, 8 17 C8 11.5, 12.5 8, 17 8 C19.8 8, 22.2 9.4, 24 11.6 C25.8 9.4, 28.2 8, 31 8 C35.5 8, 40 11.5, 40 17 C40 26, 24 36, 24 36Z" fill="#e97872"/>
           <text x="52" y="20" fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic" fontSize="13" fill={dark ? '#f0f0f0' : '#262626'} letterSpacing="0.3">Mots</text>
           <text x="52" y="36" fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic" fontSize="13" fill="#e97872" letterSpacing="0.3">d'Amour</text>
         </svg>
 
         {event && (
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center', flexShrink: 0 }}>
             <p style={{ fontSize: '10px', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '2px' }}>Galerie privée</p>
             <p style={{ fontSize: '13px', fontStyle: 'italic', color: t.text }}>{event.coupleName} · {formattedDate}</p>
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Boutons téléchargement ZIP + toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {findFolder("Livre d'or") && (
+            <button
+              style={{ ...NAV_BTN, opacity: zipProgress["Livre d'or"] ? 0.7 : 1 }}
+              disabled={!!zipProgress["Livre d'or"]}
+              onClick={() => handleZip("Livre d'or", `livre-d-or-${coupleName}.zip`)}
+            >
+              {zipBtnLabel("Livre d'or", "Livre d'or")}
+            </button>
+          )}
+          {findFolder('Boîte à questions') && (
+            <button
+              style={{ ...NAV_BTN, opacity: zipProgress['Boîte à questions'] ? 0.7 : 1 }}
+              disabled={!!zipProgress['Boîte à questions']}
+              onClick={() => handleZip('Boîte à questions', `boite-questions-${coupleName}.zip`)}
+            >
+              {zipBtnLabel('Boîte à questions', 'Boîte à questions')}
+            </button>
+          )}
+          {findFolder('Photos') && (
+            <button
+              style={{ ...NAV_BTN, opacity: zipProgress['Photos'] ? 0.7 : 1 }}
+              disabled={!!zipProgress['Photos']}
+              onClick={() => handleZip('Photos', `photos-${coupleName}.zip`)}
+            >
+              {zipBtnLabel('Photos', 'Photos')}
+            </button>
+          )}
+
           {/* Toggle dark/light */}
           <button
             onClick={() => setDark(d => !d)}
@@ -158,16 +238,15 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               background: 'transparent',
               border: `0.5px solid ${t.border}`,
               borderRadius: '50%',
-              width: '32px', height: '32px',
+              width: '30px', height: '30px',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'border-color 0.2s',
               padding: 0,
+              flexShrink: 0,
             }}
           >
             {dark ? (
-              /* Soleil */
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e97872" strokeWidth="2" strokeLinecap="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e97872" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="4"/>
                 <line x1="12" y1="2" x2="12" y2="5"/>
                 <line x1="12" y1="19" x2="12" y2="22"/>
@@ -179,41 +258,10 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
               </svg>
             ) : (
-              /* Lune */
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="#e97872">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#e97872">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
               </svg>
             )}
-          </button>
-
-          {/* Tout télécharger */}
-          <button
-            style={{
-              background: 'transparent',
-              border: `0.5px solid #e97872`,
-              color: '#e97872',
-              padding: '8px 20px',
-              borderRadius: '20px',
-              fontSize: '11px',
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              fontFamily: "'Poppins', sans-serif",
-            }}
-            onClick={() => {
-              currentItems.forEach((video, i) => {
-                setTimeout(() => {
-                  const a = document.createElement('a')
-                  a.href = `/api/proxy/${video.id}?download=1&filename=${encodeURIComponent(video.name)}`
-                  a.download = video.name
-                  document.body.appendChild(a)
-                  a.click()
-                  document.body.removeChild(a)
-                }, i * 300)
-              })
-            }}
-          >
-            Tout télécharger
           </button>
         </div>
       </nav>
@@ -267,7 +315,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       <div className="gallery-grid" style={{ padding: '0 28px 48px' }}>
         {currentItems.map((item) =>
           isPhotosTab || item.type === 'image' ? (
-            <PhotoCard key={item.id} item={item} cardBg={t.card} />
+            <PhotoCard key={item.id} item={item} />
           ) : (
             <VideoCard key={item.id} item={item} />
           )
@@ -295,7 +343,13 @@ function VideoCard({ item }: { item: MediaFile }) {
       <a
         href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}`}
         download={item.name}
-        style={DL_BTN}
+        style={{
+          display: 'block', width: '100%', marginTop: '8px', padding: '8px 16px',
+          background: '#e97872', color: 'white', border: 'none', borderRadius: '20px',
+          fontFamily: "'Poppins', sans-serif", fontSize: '11px', textTransform: 'uppercase',
+          letterSpacing: '0.06em', textAlign: 'center', textDecoration: 'none',
+          cursor: 'pointer', boxSizing: 'border-box',
+        }}
       >
         Télécharger
       </a>
@@ -303,23 +357,48 @@ function VideoCard({ item }: { item: MediaFile }) {
   )
 }
 
-function PhotoCard({ item, cardBg }: { item: MediaFile; cardBg: string }) {
+function PhotoCard({ item }: { item: MediaFile }) {
+  const [hovered, setHovered] = useState(false)
+
   return (
-    <div>
-      <div style={{ background: cardBg, borderRadius: '10px', overflow: 'hidden', lineHeight: 0 }}>
-        <img
-          src={item.streamUrl}
-          alt=""
-          style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block' }}
-        />
-      </div>
-      <a
-        href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}`}
-        download={item.name}
-        style={DL_BTN}
-      >
-        Télécharger
-      </a>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ position: 'relative', aspectRatio: '1/1', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer' }}
+    >
+      <img
+        src={item.streamUrl}
+        alt=""
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+      />
+      {hovered && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <a
+            href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}`}
+            download={item.name}
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'transparent',
+              border: '0.5px solid white',
+              color: 'white',
+              padding: '6px 14px',
+              borderRadius: '14px',
+              fontSize: '10px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              fontFamily: "'Poppins', sans-serif",
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Télécharger
+          </a>
+        </div>
+      )}
     </div>
   )
 }
