@@ -311,12 +311,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       <div className="gallery-hero" style={{ textAlign: 'center' }}>
         {event && (
           <>
-            <h1 className="gallery-couple-name" style={{ color: '#3c3c3b', marginBottom: '4px' }}>
+            <h1 className="gallery-couple-name" style={{ color: '#3c3c3b', marginBottom: '14px' }}>
               {event.coupleName}
             </h1>
-            <p style={{ fontSize: '13px', color: '#999', fontFamily: "'Poppins', sans-serif", margin: '0 0 14px' }}>
-              {formattedDate}
-            </p>
           </>
         )}
         <p style={{ fontSize: '10px', letterSpacing: '0.18em', color: '#e97872', textTransform: 'uppercase', marginBottom: '10px' }}>
@@ -458,8 +455,32 @@ function VideoCard({ item }: { item: MediaFile }) {
         playsInline
         preload="metadata"
         src={`/api/proxy/${item.id}`}
+        poster={`/api/proxy/${item.id}?thumb=1`}
         style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }}
       />
+      <a
+        href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}.mp4`}
+        download
+        style={{
+          display: 'block',
+          width: '100%',
+          marginTop: '8px',
+          padding: '8px 0',
+          background: '#e97872',
+          color: 'white',
+          border: 'none',
+          borderRadius: '20px',
+          fontFamily: 'Poppins, sans-serif',
+          fontSize: '11px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          textAlign: 'center',
+          textDecoration: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        Télécharger
+      </a>
     </div>
   )
 }
