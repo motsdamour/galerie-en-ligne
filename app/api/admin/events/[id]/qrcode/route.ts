@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const authHeader = req.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
+  const token = authHeader?.replace('Bearer ', '') || req.nextUrl.searchParams.get('t')
 
   if (!token || !verifyAdminToken(token)) {
     return new NextResponse('Non autorise', { status: 401 })

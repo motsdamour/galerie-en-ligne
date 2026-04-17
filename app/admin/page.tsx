@@ -46,6 +46,7 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<'active' | 'expired' | 'all'>('all')
   const [emailModal, setEmailModal] = useState<{ id: string; email: string } | null>(null)
   const [sendingEmail, setSendingEmail] = useState(false)
+  const [qrModal, setQrModal] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     const t = localStorage.getItem('admin_token')
@@ -371,8 +372,7 @@ export default function AdminPage() {
                         <td style={{ padding: '10px' }}>
                           {ev.edit_token ? (
                             <button onClick={() => {
-                              const url = `https://galerie.mots-damour.fr/galerie/${ev.slug}?edit_token=${ev.edit_token}`
-                              navigator.clipboard.writeText(url)
+                              navigator.clipboard.writeText(`https://galerie.mots-damour.fr/galerie/${ev.slug}/edit`)
                               alert('Lien maries copie !')
                             }} style={{ background: 'transparent', border: '0.5px solid var(--border)', cursor: 'pointer', padding: '4px 10px', borderRadius: '8px', fontSize: '10px', fontFamily: 'Arial', color: 'var(--brown-muted)' }}>
                               Copier
@@ -417,7 +417,7 @@ export default function AdminPage() {
                                 else setEmailModal({ id: ev.id, email: '' })
                               }}>Email</button>
                             <button style={{ background: 'transparent', border: '0.5px solid var(--border)', cursor: 'pointer', padding: '3px 8px', borderRadius: '8px', fontSize: '9px', fontFamily: 'Arial', color: 'var(--brown-muted)' }}
-                              onClick={() => downloadQR(ev.id)}>QR</button>
+                              onClick={() => setQrModal({ id: ev.id, name: ev.couple_name })}>QR</button>
                             <button style={{ background: 'transparent', border: 'none', color: '#e57373', fontFamily: 'Arial', fontSize: '10px', cursor: deletingId === ev.id ? 'default' : 'pointer', opacity: deletingId === ev.id ? 0.5 : 1, padding: '3px 0' }}
                               disabled={deletingId === ev.id} onClick={() => deleteEvent(ev.id)}>
                               {deletingId === ev.id ? '...' : 'Suppr'}
@@ -448,6 +448,27 @@ export default function AdminPage() {
         </div>
 
       </div>
+
+      {/* QR modal */}
+      {qrModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setQrModal(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '40px', textAlign: 'center', position: 'relative', maxWidth: '400px', width: '100%' }}>
+            <button onClick={() => setQrModal(null)} style={{ position: 'absolute', top: '12px', right: '16px', background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--brown-muted)' }}>x</button>
+            <h3 style={{ fontSize: '16px', fontStyle: 'italic', marginBottom: '20px' }}>{qrModal.name}</h3>
+            <img
+              src={`/api/admin/events/${qrModal.id}/qrcode?t=${token}`}
+              alt="QR Code"
+              width={300}
+              height={300}
+              style={{ display: 'block', margin: '0 auto 20px', borderRadius: '8px' }}
+            />
+            <button className="btn-rose-solid" style={{ fontSize: '11px', padding: '10px 28px' }} onClick={() => downloadQR(qrModal.id)}>
+              Telecharger
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Email modal */}
       {emailModal && (
