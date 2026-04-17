@@ -10,7 +10,6 @@ type MediaFile = {
   streamUrl: string
   downloadUrl: string
   thumbUrl?: string
-  hlsUrl?: string | null
   type: 'video' | 'image'
 }
 
@@ -459,8 +458,8 @@ function VideoCard({ item }: { item: MediaFile }) {
         preload="metadata"
         style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }}
       >
-        {isSafari && item.hlsUrl ? (
-          <source src={item.hlsUrl} type="application/x-mpegURL" />
+        {isSafari ? (
+          <source src={`/api/proxy/${item.id}?hls=1`} type="application/x-mpegURL" />
         ) : null}
         <source src={`/api/proxy/${item.id}`} type="video/mp4" />
       </video>

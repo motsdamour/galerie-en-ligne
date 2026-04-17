@@ -8,6 +8,19 @@ export async function GET(
   const token = process.env.PCLOUD_AUTH_TOKEN
   const url = new URL(request.url)
 
+  // HLS redirect pour Safari iOS
+  if (url.searchParams.get('hls')) {
+    const hlsRes = await fetch(
+      `https://eapi.pcloud.com/getvideolink?auth=${token}&fileid=${fileId}&abitrate=320&vbitrate=4000&resolution=1080x1920`
+    )
+    const hlsData = await hlsRes.json()
+    if (hlsData.result === 0) {
+      const hlsUrl = `https://${hlsData.hosts[0]}${hlsData.path}`
+      return Response.redirect(hlsUrl, 302)
+    }
+    // fallback vers getfilelink si HLS échoue
+  }
+
   const linkRes = await fetch(
     `https://eapi.pcloud.com/getfilelink?auth=${token}&fileid=${fileId}`
   )
