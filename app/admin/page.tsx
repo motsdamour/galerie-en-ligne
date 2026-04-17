@@ -13,6 +13,8 @@ type Event = {
   created_at: string
   password_plain: string | null
   user_id: string | null
+  edit_token: string | null
+  couple_email: string | null
 }
 
 type User = {
@@ -32,7 +34,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [events, setEvents] = useState<Event[]>([])
-  const [form, setForm] = useState({ coupleName: '', eventDate: '', eventType: 'mariage', pcloudFolderId: '', customPassword: '' })
+  const [form, setForm] = useState({ coupleName: '', eventDate: '', eventType: 'mariage', pcloudFolderId: '', customPassword: '', coupleEmail: '' })
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState<CreatedEvent | null>(null)
   const [editingPwd, setEditingPwd] = useState<{ id: string; value: string } | null>(null)
@@ -159,7 +161,7 @@ export default function AdminPage() {
     setCreating(false)
     if (res.ok) {
       setCreated(data)
-      setForm({ coupleName: '', eventDate: '', eventType: 'mariage', pcloudFolderId: '', customPassword: '' })
+      setForm({ coupleName: '', eventDate: '', eventType: 'mariage', pcloudFolderId: '', customPassword: '', coupleEmail: '' })
       if (token) loadEvents(token)
     } else {
       alert(data.error)
@@ -221,9 +223,13 @@ export default function AdminPage() {
               <label style={{ fontSize: '11px', color: 'var(--brown-muted)', fontFamily: 'Arial', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>ID dossier pCloud</label>
               <input type="text" placeholder="123456789" value={form.pcloudFolderId} onChange={e => setForm(f => ({ ...f, pcloudFolderId: e.target.value }))} required/>
             </div>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ fontSize: '11px', color: 'var(--brown-muted)', fontFamily: 'Arial', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Mot de passe personnalisé (optionnel — généré auto si vide)</label>
-              <input type="text" placeholder="Laissez vide pour générer automatiquement" value={form.customPassword} onChange={e => setForm(f => ({ ...f, customPassword: e.target.value }))}/>
+            <div>
+              <label style={{ fontSize: '11px', color: 'var(--brown-muted)', fontFamily: 'Arial', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Mot de passe personnalise (optionnel)</label>
+              <input type="text" placeholder="Genere auto si vide" value={form.customPassword} onChange={e => setForm(f => ({ ...f, customPassword: e.target.value }))}/>
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', color: 'var(--brown-muted)', fontFamily: 'Arial', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Email des maries (optionnel)</label>
+              <input type="email" placeholder="couple@exemple.com" value={form.coupleEmail} onChange={e => setForm(f => ({ ...f, coupleEmail: e.target.value }))}/>
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <button type="submit" className="btn-rose-solid" disabled={creating}>
@@ -317,7 +323,12 @@ export default function AdminPage() {
                           </span>
                         </td>
                         <td style={{ padding: '12px' }}>
-                          <a href={`/galerie/${ev.slug}`} target="_blank" style={{ color: 'var(--rose)', textDecoration: 'none' }}>Voir →</a>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <a href={`/galerie/${ev.slug}`} target="_blank" style={{ color: 'var(--rose)', textDecoration: 'none', fontSize: '12px' }}>Invites →</a>
+                            {ev.edit_token && (
+                              <a href={`/galerie/${ev.slug}?edit_token=${ev.edit_token}`} target="_blank" style={{ color: 'var(--brown-muted)', textDecoration: 'none', fontSize: '10px' }}>Editeur →</a>
+                            )}
+                          </div>
                         </td>
                         <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--brown-muted)' }}>
                           {ev.password_plain ? ev.password_plain : addingPwd?.id === ev.id ? (

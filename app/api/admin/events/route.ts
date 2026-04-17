@@ -30,11 +30,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
-  const { coupleName, eventDate, eventType, pcloudFolderId, customPassword } = await req.json()
+  const { coupleName, eventDate, eventType, pcloudFolderId, customPassword, coupleEmail } = await req.json()
 
   const password = customPassword || generatePassword()
   const slug = generateSlug(coupleName, eventDate)
   const passwordHash = await hashPassword(password)
+  const editToken = crypto.randomUUID()
 
   // Expiration 12 mois après l'événement
   const expiresAt = new Date(eventDate)
@@ -51,6 +52,8 @@ export async function POST(req: NextRequest) {
       slug,
       password_hash: passwordHash,
       password_plain: password,
+      edit_token: editToken,
+      couple_email: coupleEmail?.trim() || null,
       expires_at: expiresAt.toISOString(),
     })
     .select('id, slug')
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await sendNewGalleryEmail({ couple_name: coupleName, slug, password_plain: password })
+    await sendNewGalleryEmail({ couple_name: coupleName, slug, password_plain: password, edit_token: editToken, couple_email: coupleEmail?.trim() || null })
   } catch (err) {
     console.error('Email error:', err)
   }
@@ -88,7 +91,7 @@ export async function GET(req: NextRequest) {
   const db = supabaseAdmin()
   const { data } = await db
     .from('events')
-    .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at, password_plain, user_id')
+    .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at, password_plain, user_id, edit_token, couple_email')
     .order('created_at', { ascending: false })
 
   return NextResponse.json(data)

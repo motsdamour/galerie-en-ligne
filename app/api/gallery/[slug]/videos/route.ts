@@ -17,7 +17,7 @@ export async function GET(
   const db = supabaseAdmin()
   const { data: event } = await db
     .from('events')
-    .select('pcloud_folder_id, couple_name, event_date')
+    .select('pcloud_folder_id, couple_name, event_date, hidden_files, edit_token')
     .eq('slug', slug)
     .single()
 
@@ -27,11 +27,14 @@ export async function GET(
 
   try {
     const folders = await listVideosByFolder(event.pcloud_folder_id)
+    const hiddenFiles = new Set((event.hidden_files ?? []).map(String))
+    const editTokenParam = req.nextUrl.searchParams.get('edit_token')
+    const isEditor = editTokenParam && editTokenParam === event.edit_token
 
     const foldersWithUrls = folders.map((folder) => ({
       name: folder.name,
       folderid: folder.folderid,
-      videos: folder.videos.map((f) => ({
+      videos: folder.videos.filter((f) => isEditor || !hiddenFiles.has(String(f.fileid))).map((f) => ({
         id: f.fileid,
         name: f.name.replace(/\.[^/.]+$/, ''),
         size: f.size,
@@ -51,6 +54,7 @@ export async function GET(
       },
       folders: foldersWithUrls,
       totalVideos,
+      isEditor: !!isEditor,
     })
   } catch (err) {
     console.error('pCloud error:', err)

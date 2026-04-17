@@ -40,6 +40,10 @@ export async function PATCH(
     updates.user_id = body.user_id || null
   }
 
+  if (body.couple_email !== undefined) {
+    updates.couple_email = body.couple_email?.trim() || null
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Aucun champ à mettre à jour' }, { status: 400 })
   }

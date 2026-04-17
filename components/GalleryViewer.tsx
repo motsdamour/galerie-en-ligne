@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import JSZip from 'jszip'
 
 type MediaFile = {
@@ -78,11 +79,16 @@ async function buildZip(
 }
 
 export default function GalleryViewer({ slug }: { slug: string }) {
+  const searchParams = useSearchParams()
+  const editToken = searchParams.get('edit_token')
+
   const [event, setEvent] = useState<GalleryEvent | null>(null)
   const [folders, setFolders] = useState<Folder[]>([])
   const [totalVideos, setTotalVideos] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isEditor, setIsEditor] = useState(false)
+  const [hiddenIds, setHiddenIds] = useState<Set<number>>(new Set())
   const [activeTab, setActiveTab] = useState(0)
   const [dark, setDark] = useState(false)
   const [navDropOpen, setNavDropOpen] = useState(false)
@@ -95,17 +101,33 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const t = dark ? DARK : LIGHT
 
   useEffect(() => {
-    fetch(`/api/gallery/${slug}/videos`)
+    const url = editToken
+      ? `/api/gallery/${slug}/videos?edit_token=${editToken}`
+      : `/api/gallery/${slug}/videos`
+    fetch(url)
       .then(r => r.json())
       .then(data => {
         if (data.error) { setError(data.error); return }
         setEvent(data.event)
         setFolders(data.folders ?? [])
         setTotalVideos(data.totalVideos ?? 0)
+        if (data.isEditor) setIsEditor(true)
       })
       .catch(() => setError('Erreur de chargement'))
       .finally(() => setLoading(false))
-  }, [slug])
+  }, [slug, editToken])
+
+  async function hideFile(fileId: number) {
+    const res = await fetch(`/api/gallery/${slug}/hide`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileId, edit_token: editToken }),
+    })
+    if (res.ok) {
+      setHiddenIds(prev => new Set([...prev, fileId]))
+      setTotalVideos(n => n - 1)
+    }
+  }
 
   useEffect(() => {
     if (!navDropOpen) return
@@ -307,6 +329,13 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
       </nav>
 
+      {/* Edit mode badge */}
+      {isEditor && (
+        <div style={{ background: '#e97872', color: 'white', textAlign: 'center', padding: '8px', fontSize: '11px', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Mode edition — cliquez sur le bouton masquer pour retirer un media
+        </div>
+      )}
+
       {/* Hero */}
       <div className="gallery-hero" style={{ textAlign: 'center' }}>
         {event && (
@@ -355,11 +384,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
       {/* Grid */}
       <div className={isPhotosTab ? 'gallery-grid-photo gallery-content' : 'gallery-grid-video gallery-content'}>
-        {currentItems.map((item) => {
+        {currentItems.filter(item => !hiddenIds.has(item.id)).map((item) => {
           const isPhoto = isPhotosTab || item.type === 'image'
-          if (!isPhoto) return <VideoCard key={item.id} item={item} />
+          if (!isPhoto) return <VideoCard key={item.id} item={item} isEditor={isEditor} onHide={() => hideFile(item.id)} />
           const photoIdx = photoItems.findIndex(p => p.id === item.id)
-          return <PhotoCard key={item.id} item={item} onOpen={() => setLightboxIndex(photoIdx)} />
+          return <PhotoCard key={item.id} item={item} onOpen={() => setLightboxIndex(photoIdx)} isEditor={isEditor} onHide={() => hideFile(item.id)} />
         })}
       </div>
 
@@ -447,9 +476,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   )
 }
 
-function VideoCard({ item }: { item: MediaFile }) {
+function VideoCard({ item, isEditor, onHide }: { item: MediaFile; isEditor: boolean; onHide: () => void }) {
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', position: 'relative' }}>
       <video
         controls
         playsInline
@@ -479,13 +508,25 @@ function VideoCard({ item }: { item: MediaFile }) {
           cursor: 'pointer',
         }}
       >
-        Télécharger
+        Telecharger
       </a>
+      {isEditor && (
+        <button
+          onClick={onHide}
+          style={{
+            position: 'absolute', top: '8px', right: '8px',
+            background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none',
+            borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          title="Masquer ce media"
+        >X</button>
+      )}
     </div>
   )
 }
 
-function PhotoCard({ item, onOpen }: { item: MediaFile; onOpen: () => void }) {
+function PhotoCard({ item, onOpen, isEditor, onHide }: { item: MediaFile; onOpen: () => void; isEditor: boolean; onHide: () => void }) {
   const [hovered, setHovered] = useState(false)
   return (
     <div
@@ -506,6 +547,19 @@ function PhotoCard({ item, onOpen }: { item: MediaFile; onOpen: () => void }) {
             <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
           </svg>
         </div>
+      )}
+      {isEditor && (
+        <button
+          onClick={e => { e.stopPropagation(); onHide() }}
+          style={{
+            position: 'absolute', top: '8px', right: '8px',
+            background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none',
+            borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10,
+          }}
+          title="Masquer ce media"
+        >X</button>
       )}
     </div>
   )

@@ -80,6 +80,8 @@ export async function GET(req: NextRequest) {
     const expiresAt = new Date(today)
     expiresAt.setMonth(expiresAt.getMonth() + 12)
 
+    const editToken = crypto.randomUUID()
+
     const { error } = await db.from('events').insert({
       couple_name: coupleName,
       event_date: today,
@@ -88,6 +90,7 @@ export async function GET(req: NextRequest) {
       slug,
       password_hash: passwordHash,
       password_plain: password,
+      edit_token: editToken,
       expires_at: expiresAt.toISOString(),
       is_active: true,
     })
@@ -104,6 +107,7 @@ export async function GET(req: NextRequest) {
           slug: slugAlt,
           password_hash: passwordHash,
           password_plain: password,
+          edit_token: editToken,
           expires_at: expiresAt.toISOString(),
           is_active: true,
         })
@@ -113,7 +117,7 @@ export async function GET(req: NextRequest) {
     created.push(coupleName)
 
     try {
-      await sendNewGalleryEmail({ couple_name: coupleName, slug, password_plain: password })
+      await sendNewGalleryEmail({ couple_name: coupleName, slug, password_plain: password, edit_token: editToken, couple_email: null })
     } catch (err) {
       console.error('Email error:', err)
     }
