@@ -387,21 +387,9 @@ export default function AdminPage() {
                             const days = Math.max(0, Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
                             const color = days <= 0 ? '#993556' : days < 7 ? '#c0392b' : days < 30 ? '#e67e22' : '#0f6e56'
                             return (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span style={{ fontSize: '11px', color, fontWeight: 500 }}>
-                                  {days <= 0 ? 'Expiree' : `${days}j`}
-                                </span>
-                                <button onClick={async () => {
-                                  await fetch(`/api/admin/events/${ev.id}`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                    body: JSON.stringify({ extend: true }),
-                                  })
-                                  if (token) loadEvents(token)
-                                }} style={{ background: 'transparent', border: '0.5px solid var(--border)', cursor: 'pointer', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontFamily: 'Arial', color: 'var(--brown-muted)' }}>
-                                  +365j
-                                </button>
-                              </div>
+                              <span style={{ fontSize: '11px', color, fontWeight: 500 }}>
+                                {days <= 0 ? 'Expiree' : `${days}j`}
+                              </span>
                             )
                           })()}
                         </td>
