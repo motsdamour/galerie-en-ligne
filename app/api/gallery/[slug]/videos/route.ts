@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isAuthorized } from '@/lib/auth'
-import { listVideosByFolder, getStreamLink, getDownloadLink } from '@/lib/pcloud'
+import { listVideosByFolder } from '@/lib/pcloud'
 
 export async function GET(
   req: NextRequest,
@@ -28,22 +28,18 @@ export async function GET(
   try {
     const folders = await listVideosByFolder(event.pcloud_folder_id)
 
-    const foldersWithUrls = await Promise.all(
-      folders.map(async (folder) => ({
-        name: folder.name,
-        folderid: folder.folderid,
-        videos: await Promise.all(
-          folder.videos.map(async (f) => ({
-            id: f.fileid,
-            name: f.name.replace(/\.[^/.]+$/, ''),
-            size: f.size,
-            type: f.mediaType,
-            streamUrl: f.mediaType === 'video' ? await getStreamLink(f.fileid) : await getDownloadLink(f.fileid),
-            downloadUrl: await getDownloadLink(f.fileid),
-          }))
-        ),
-      }))
-    )
+    const foldersWithUrls = folders.map((folder) => ({
+      name: folder.name,
+      folderid: folder.folderid,
+      videos: folder.videos.map((f) => ({
+        id: f.fileid,
+        name: f.name.replace(/\.[^/.]+$/, ''),
+        size: f.size,
+        type: f.mediaType,
+        streamUrl: `/api/proxy/${f.fileid}`,
+        downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
+      })),
+    }))
 
     const totalVideos = foldersWithUrls.reduce((sum, f) => sum + f.videos.length, 0)
 
