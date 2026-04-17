@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       pcloud_folder_id: pcloudFolderId,
       slug,
       password_hash: passwordHash,
+      password_plain: password,
       expires_at: expiresAt.toISOString(),
     })
     .select('id, slug')
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest) {
   const db = supabaseAdmin()
   const { data } = await db
     .from('events')
-    .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at')
+    .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at, password_plain')
     .order('created_at', { ascending: false })
 
   return NextResponse.json(data)

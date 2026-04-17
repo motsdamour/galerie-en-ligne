@@ -11,6 +11,7 @@ type Event = {
   is_active: boolean
   expires_at: string
   created_at: string
+  password_plain: string | null
 }
 
 type CreatedEvent = {
@@ -205,7 +206,7 @@ export default function AdminPage() {
               <table style={{ width: '100%', fontSize: '13px', fontFamily: 'Arial', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '0.5px solid var(--border)' }}>
-                    {['Couple', 'Date', 'Type', 'Statut', 'Lien', 'Actions'].map(h => (
+                    {['Couple', 'Date', 'Type', 'Statut', 'Lien', 'Mot de passe', 'Actions'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--brown-muted)', fontWeight: 400, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                     ))}
                   </tr>
@@ -224,6 +225,9 @@ export default function AdminPage() {
                         </td>
                         <td style={{ padding: '12px' }}>
                           <a href={`/galerie/${ev.slug}`} target="_blank" style={{ color: 'var(--rose)', textDecoration: 'none' }}>Voir →</a>
+                        </td>
+                        <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--brown-muted)' }}>
+                          {ev.password_plain ?? <span style={{ color: 'var(--brown-light)', fontStyle: 'italic', fontFamily: 'Arial' }}>—</span>}
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

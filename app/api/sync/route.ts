@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
       pcloud_folder_id: folderId,
       slug,
       password_hash: passwordHash,
+      password_plain: password,
       expires_at: expiresAt.toISOString(),
       is_active: true,
     })
@@ -101,6 +102,7 @@ export async function GET(req: NextRequest) {
           pcloud_folder_id: folderId,
           slug: slugAlt,
           password_hash: passwordHash,
+          password_plain: password,
           expires_at: expiresAt.toISOString(),
           is_active: true,
         })
