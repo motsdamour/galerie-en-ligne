@@ -33,7 +33,8 @@ export async function GET(
   let pcloudUrl: string
   try {
     pcloudUrl = await resolveLink(fileIdNum, download)
-  } catch {
+  } catch (err) {
+    console.error('[proxy] resolveLink error:', err)
     return new NextResponse('Erreur pCloud', { status: 502 })
   }
 
