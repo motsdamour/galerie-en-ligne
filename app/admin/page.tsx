@@ -296,7 +296,11 @@ export default function AdminPage() {
                                 style={{ width: '110px', padding: '4px 8px', fontSize: '12px', fontFamily: 'monospace' }}
                                 autoFocus
                               />
-                              <button onClick={() => addingPwd.value && savePasswordPlain(ev.id, addingPwd.value)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#0f6e56', fontSize: '15px', padding: '2px', lineHeight: 1 }}>✓</button>
+                              <button
+                                onClick={() => addingPwd.value && savePasswordPlain(ev.id, addingPwd.value)}
+                                style={{ background: 'var(--rose)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '10px', padding: '4px 10px', borderRadius: '10px', fontFamily: 'Arial', whiteSpace: 'nowrap' }}
+                              >Régénérer</button>
+                              <button onClick={() => setAddingPwd(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brown-muted)', fontSize: '13px', padding: '2px', lineHeight: 1 }}>✕</button>
                             </div>
                           ) : (
                             <button onClick={() => setAddingPwd({ id: ev.id, value: '' })} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brown-light)', fontStyle: 'italic', fontFamily: 'Arial', fontSize: '12px', padding: 0 }}>Ajouter…</button>

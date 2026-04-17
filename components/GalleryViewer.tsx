@@ -311,12 +311,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       <div className="gallery-hero" style={{ textAlign: 'center' }}>
         {event && (
           <>
-            <h1 className="gallery-couple-name" style={{ color: '#3c3c3b', marginBottom: '4px' }}>
+            <h1 className="gallery-couple-name" style={{ color: '#3c3c3b', marginBottom: '14px' }}>
               {event.coupleName}
             </h1>
-            <p style={{ fontSize: '13px', color: '#999', fontFamily: "'Poppins', sans-serif", margin: '0 0 14px' }}>
-              {formattedDate}
-            </p>
           </>
         )}
         <p style={{ fontSize: '10px', letterSpacing: '0.18em', color: '#e97872', textTransform: 'uppercase', marginBottom: '10px' }}>
