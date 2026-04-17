@@ -46,43 +46,24 @@ export async function GET(
       })),
     }))
 
-    const totalVideos = foldersWithUrls.reduce((sum, f) => sum + f.videos.length, 0)
+    // Separer les medias invites (prefixe "invite_") des medias normaux
+    const guestPhotos: any[] = []
 
-    // Lister les photos invités
-    const pcloudToken = process.env.PCLOUD_AUTH_TOKEN
-    let guestPhotos: any[] = []
-    if (pcloudToken) {
-      try {
-        const guestRes = await fetch(
-          `https://eapi.pcloud.com/listfolder?auth=${pcloudToken}&folderid=${event.pcloud_folder_id}&recursive=0`
-        )
-        const guestData = await guestRes.json()
-        const photosFolder = (guestData.metadata?.contents ?? []).find((c: any) => c.isfolder && c.name === 'photos-invites')
-        if (photosFolder) {
-          const photosRes = await fetch(
-            `https://eapi.pcloud.com/listfolder?auth=${pcloudToken}&folderid=${photosFolder.folderid}&recursive=0`
-          )
-          const photosData = await photosRes.json()
-          const files = (photosData.metadata?.contents ?? []).filter((c: any) => !c.isfolder)
-          const videoExts = ['.mp4', '.mov', '.webm', '.avi']
-          guestPhotos = files
-            .filter((f: any) => !isEditor ? !hiddenFiles.has(String(f.fileid)) : true)
-            .map((f: any) => {
-              const isVideo = videoExts.some(ext => f.name.toLowerCase().endsWith(ext))
-              return {
-                id: f.fileid,
-                name: f.name.replace(/\.[^/.]+$/, ''),
-                size: f.size,
-                type: isVideo ? 'video' as const : 'image' as const,
-                hidden: hiddenFiles.has(String(f.fileid)),
-                streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
-                downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
-                thumbUrl: isVideo ? `/api/proxy/${f.fileid}?thumb=1` : undefined,
-              }
-            })
+    const foldersClean = foldersWithUrls.map(f => ({
+      ...f,
+      videos: f.videos.filter((v: any) => {
+        if (v.name.startsWith('invite_')) {
+          guestPhotos.push({
+            ...v,
+            name: v.name.replace(/^invite_\d+_/, ''),
+          })
+          return false
         }
-      } catch {}
-    }
+        return true
+      }),
+    })).filter(f => f.videos.length > 0)
+
+    const totalVideos = foldersClean.reduce((sum, f) => sum + f.videos.length, 0)
 
     return NextResponse.json({
       event: {
@@ -90,7 +71,7 @@ export async function GET(
         eventDate: event.event_date,
         expiresAt: event.expires_at,
       },
-      folders: foldersWithUrls,
+      folders: foldersClean,
       totalVideos,
       guestPhotos,
       isEditor: !!isEditor,

@@ -41,7 +41,7 @@ export async function POST(
   }
 
   if (file.size > MAX_SIZE) {
-    return NextResponse.json({ error: 'Fichier trop volumineux (max 20MB)' }, { status: 400 })
+    return NextResponse.json({ error: 'Fichier trop volumineux (max 200MB)' }, { status: 400 })
   }
 
   const ext = file.name.toLowerCase().split('.').pop() || ''
@@ -50,44 +50,13 @@ export async function POST(
     return NextResponse.json({ error: 'Format non supporte (jpg, png, heic, webp, mp4, mov, webm)' }, { status: 400 })
   }
 
-  // Trouver ou creer le sous-dossier "photos-invites"
-  const listRes = await fetch(
-    `${PCLOUD_API}/listfolder?auth=${token}&folderid=${event.pcloud_folder_id}&recursive=0`
-  )
-  const listData = await listRes.json()
-  const subfolders = (listData.metadata?.contents ?? []).filter((c: any) => c.isfolder)
-  let photosFolder = subfolders.find((f: any) => f.name === 'photos-invites')
-
-  if (!photosFolder) {
-    const createRes = await fetch(
-      `${PCLOUD_API}/createfolder?auth=${token}&folderid=${event.pcloud_folder_id}&name=photos-invites`
-    )
-    const createData = await createRes.json()
-    if (createData.result !== 0 && createData.error !== 'File or folder alredy exists.') {
-      return NextResponse.json({ error: 'Erreur creation dossier' }, { status: 502 })
-    }
-    // Re-lister pour obtenir le folderid
-    if (createData.metadata) {
-      photosFolder = createData.metadata
-    } else {
-      const relistRes = await fetch(
-        `${PCLOUD_API}/listfolder?auth=${token}&folderid=${event.pcloud_folder_id}&recursive=0`
-      )
-      const relistData = await relistRes.json()
-      photosFolder = (relistData.metadata?.contents ?? []).find((c: any) => c.isfolder && c.name === 'photos-invites')
-    }
-  }
-
-  if (!photosFolder) {
-    return NextResponse.json({ error: 'Impossible de trouver le dossier photos-invites' }, { status: 500 })
-  }
-
-  // Upload vers pCloud
+  // Upload directement dans le dossier racine avec prefixe invite_
+  const prefixedName = `invite_${Date.now()}_${file.name}`
   const uploadForm = new FormData()
-  uploadForm.append('file', file, file.name)
+  uploadForm.append('file', file, prefixedName)
 
   const uploadRes = await fetch(
-    `${PCLOUD_API}/uploadfile?auth=${token}&folderid=${photosFolder.folderid}&filename=${encodeURIComponent(file.name)}`,
+    `${PCLOUD_API}/uploadfile?auth=${token}&folderid=${event.pcloud_folder_id}&filename=${encodeURIComponent(prefixedName)}`,
     { method: 'POST', body: uploadForm }
   )
   const uploadData = await uploadRes.json()

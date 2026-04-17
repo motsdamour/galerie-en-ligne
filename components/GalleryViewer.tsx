@@ -460,7 +460,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 whiteSpace: 'nowrap',
               }}
             >
-              Vos photos
+              Photos & videos invites
               <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({guestPhotos.filter(p => !hiddenIds.has(p.id)).length})</span>
             </button>
           </div>
