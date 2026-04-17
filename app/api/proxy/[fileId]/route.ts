@@ -8,32 +8,18 @@ export async function GET(
   const token = process.env.PCLOUD_AUTH_TOKEN
   const url = new URL(request.url)
 
-  let fileUrl: string
+  const linkRes = await fetch(
+    `https://eapi.pcloud.com/getfilelink?auth=${token}&fileid=${fileId}`
+  )
+  const linkData = await linkRes.json()
+  if (linkData.result !== 0) return new Response('pCloud error', { status: 502 })
 
-  if (url.searchParams.get('hls')) {
-    const hlsRes = await fetch(
-      `https://eapi.pcloud.com/getvideolink?auth=${token}&fileid=${fileId}&abitrate=320&vbitrate=4000&resolution=1080x1920`
-    )
-    const hlsData = await hlsRes.json()
-    if (hlsData.result === 0) {
-      fileUrl = `https://${hlsData.hosts[0]}${hlsData.path}`
-    } else {
-      // fallback vers getfilelink si getvideolink échoue
-      const linkRes = await fetch(
-        `https://eapi.pcloud.com/getfilelink?auth=${token}&fileid=${fileId}`
-      )
-      const linkData = await linkRes.json()
-      if (linkData.result !== 0) return new Response('pCloud error', { status: 502 })
-      fileUrl = `https://${linkData.hosts[0]}${linkData.path}`
-    }
-  } else {
-    const linkRes = await fetch(
-      `https://eapi.pcloud.com/getfilelink?auth=${token}&fileid=${fileId}`
-    )
-    const linkData = await linkRes.json()
-    if (linkData.result !== 0) return new Response('pCloud error', { status: 502 })
-    fileUrl = `https://${linkData.hosts[0]}${linkData.path}`
-  }
+  const fileUrl = `https://${linkData.hosts[0]}${linkData.path}`
+
+  // Pré-requête HEAD pour obtenir content-length
+  const headRes = await fetch(fileUrl, { method: 'HEAD' })
+  const totalSize = headRes.headers.get('content-length')
+
   const rangeHeader = request.headers.get('range')
   const fetchHeaders: HeadersInit = {}
   if (rangeHeader) fetchHeaders['range'] = rangeHeader
@@ -43,10 +29,10 @@ export async function GET(
   const responseHeaders = new Headers()
   responseHeaders.set('accept-ranges', 'bytes')
   responseHeaders.set('content-type', 'video/mp4')
-  responseHeaders.set('cache-control', 'no-store, no-cache')
-  responseHeaders.set('x-content-type-options', 'nosniff')
+  responseHeaders.set('cache-control', 'no-store')
 
-  const contentLength = fileRes.headers.get('content-length')
+  // Forcer content-length depuis HEAD si pas dans la réponse
+  const contentLength = fileRes.headers.get('content-length') || totalSize
   if (contentLength) responseHeaders.set('content-length', contentLength)
 
   const contentRange = fileRes.headers.get('content-range')
@@ -58,7 +44,7 @@ export async function GET(
   }
 
   return new Response(fileRes.body, {
-    status: fileRes.status,
+    status: rangeHeader ? 206 : 200,
     headers: responseHeaders,
   })
 }
