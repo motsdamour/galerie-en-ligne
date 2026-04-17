@@ -86,12 +86,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [activeTab, setActiveTab] = useState(0)
   const [dark, setDark] = useState(false)
   const [navDropOpen, setNavDropOpen] = useState(false)
-  const [centerDropOpen, setCenterDropOpen] = useState(false)
   const [zipKey, setZipKey] = useState<string | null>(null)
   const [zipProgress, setZipProgress] = useState({ done: 0, total: 0 })
-  const [lightboxItem, setLightboxItem] = useState<MediaFile | null>(null)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const navDropRef = useRef<HTMLDivElement>(null)
-  const centerDropRef = useRef<HTMLDivElement>(null)
+  const touchStartX = useRef<number | null>(null)
 
   const t = dark ? DARK : LIGHT
 
@@ -117,29 +116,26 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     return () => document.removeEventListener('mousedown', h)
   }, [navDropOpen])
 
-  useEffect(() => {
-    if (!centerDropOpen) return
-    function h(e: MouseEvent) {
-      if (centerDropRef.current && !centerDropRef.current.contains(e.target as Node)) setCenterDropOpen(false)
-    }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [centerDropOpen])
+  const currentFolder = folders[activeTab]
+  const currentItems = currentFolder?.videos ?? []
+  const isPhotosTab = currentFolder ? tabLabel(currentFolder.name) === 'Photos' : false
+  const photoItems = currentItems.filter(item => isPhotosTab || item.type === 'image')
 
   useEffect(() => {
-    if (!lightboxItem) return
-    function h(e: KeyboardEvent) { if (e.key === 'Escape') setLightboxItem(null) }
+    if (lightboxIndex === null) return
+    function h(e: KeyboardEvent) {
+      if (e.key === 'Escape') setLightboxIndex(null)
+      else if (e.key === 'ArrowLeft') setLightboxIndex(i => i !== null ? (i - 1 + photoItems.length) % photoItems.length : null)
+      else if (e.key === 'ArrowRight') setLightboxIndex(i => i !== null ? (i + 1) % photoItems.length : null)
+    }
     document.addEventListener('keydown', h)
     return () => document.removeEventListener('keydown', h)
-  }, [lightboxItem])
+  }, [lightboxIndex, photoItems.length])
 
   const formattedDate = event
     ? new Date(event.eventDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : ''
 
-  const currentFolder = folders[activeTab]
-  const currentItems = currentFolder?.videos ?? []
-  const isPhotosTab = currentFolder ? tabLabel(currentFolder.name) === 'Photos' : false
   const coupleName = event ? slugify(event.coupleName) : 'galerie'
 
   function findFolder(label: string) {
@@ -149,7 +145,6 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   async function handleZip(key: string, files: MediaFile[], zipName: string) {
     if (zipKey) return
     setNavDropOpen(false)
-    setCenterDropOpen(false)
     setZipKey(key)
     setZipProgress({ done: 0, total: files.length })
     try {
@@ -203,6 +198,32 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
   const zipLabel = zipKey ? `${zipProgress.done}/${zipProgress.total}…` : 'Télécharger ▾'
 
+  const lightboxItem = lightboxIndex !== null ? photoItems[lightboxIndex] : null
+
+  function handleLightboxPrev(e: React.MouseEvent) {
+    e.stopPropagation()
+    setLightboxIndex(i => i !== null ? (i - 1 + photoItems.length) % photoItems.length : null)
+  }
+
+  function handleLightboxNext(e: React.MouseEvent) {
+    e.stopPropagation()
+    setLightboxIndex(i => i !== null ? (i + 1) % photoItems.length : null)
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current
+    touchStartX.current = null
+    if (Math.abs(deltaX) > 50) {
+      if (deltaX < 0) setLightboxIndex(i => i !== null ? (i + 1) % photoItems.length : null)
+      else setLightboxIndex(i => i !== null ? (i - 1 + photoItems.length) % photoItems.length : null)
+    }
+  }
+
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
       <div style={{ textAlign: 'center' }}>
@@ -229,8 +250,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           <img
             src="/logo.svg"
             alt="Mots d'Amour"
-            width="110"
-            height="61"
+            width="100"
+            height="56"
             style={{ filter: dark ? 'brightness(0) invert(1)' : 'none', display: 'block', flexShrink: 0 }}
           />
 
@@ -238,7 +259,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             {/* Bouton télécharger nav */}
             <div ref={navDropRef} style={{ position: 'relative' }}>
               <button
-                onClick={() => { setNavDropOpen(o => !o); setCenterDropOpen(false) }}
+                onClick={() => setNavDropOpen(o => !o)}
                 disabled={!!zipKey}
                 style={{
                   background: '#e97872', color: 'white', border: 'none',
@@ -297,12 +318,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         <p style={{ fontSize: '10px', letterSpacing: '0.18em', color: '#e97872', textTransform: 'uppercase', marginBottom: '10px' }}>
           {totalVideos} souvenir{totalVideos > 1 ? 's' : ''} partagé{totalVideos > 1 ? 's' : ''} avec amour
         </p>
-        <h1 style={{ fontSize: '28px', fontWeight: 300, fontStyle: 'italic', color: t.text, marginBottom: '6px' }}>
-          Vos mots d'amour
-        </h1>
-        <p style={{ fontSize: '12px', color: t.muted }}>
-          Regardez et téléchargez vos souvenirs · Partagez ce lien à tous vos invités
-        </p>
+        {event && (
+          <h1 className="gallery-couple-name" style={{ color: t.text, marginBottom: '6px' }}>
+            {event.coupleName}
+          </h1>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '18px' }}>
           <div style={{ width: '40px', height: '0.5px', background: '#e97872', opacity: 0.4 }}/>
           <div style={{ width: '5px', height: '5px', background: '#e97872', transform: 'rotate(45deg)', opacity: 0.5 }}/>
@@ -310,7 +330,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* Tabs + bouton centré */}
+      {/* Tabs */}
       <div className="gallery-tabs-area">
         {folders.length > 1 && (
           <div className="tabs-scroll">
@@ -335,38 +355,16 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             ))}
           </div>
         )}
-
-        {/* Bouton télécharger centré */}
-        <div ref={centerDropRef} style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-          <button
-            onClick={() => { setCenterDropOpen(o => !o); setNavDropOpen(false) }}
-            disabled={!!zipKey}
-            style={{
-              background: 'transparent', border: '0.5px solid #e97872', color: '#e97872',
-              padding: '9px 22px', borderRadius: '20px', fontSize: '11px',
-              letterSpacing: '0.06em', textTransform: 'uppercase', cursor: zipKey ? 'default' : 'pointer',
-              fontFamily: "'Poppins', sans-serif", opacity: zipKey ? 0.7 : 1, minHeight: '44px',
-            }}
-          >
-            {zipLabel}
-          </button>
-          {centerDropOpen && (
-            <div style={{ ...dropMenuStyle, position: 'absolute', top: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)' }}>
-              {dropMenuContent}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Grid */}
       <div className={isPhotosTab ? 'gallery-grid-photo gallery-content' : 'gallery-grid-video gallery-content'}>
-        {currentItems.map((item) =>
-          isPhotosTab || item.type === 'image' ? (
-            <PhotoCard key={item.id} item={item} onOpen={setLightboxItem} />
-          ) : (
-            <VideoCard key={item.id} item={item} />
-          )
-        )}
+        {currentItems.map((item) => {
+          const isPhoto = isPhotosTab || item.type === 'image'
+          if (!isPhoto) return <VideoCard key={item.id} item={item} />
+          const photoIdx = photoItems.findIndex(p => p.id === item.id)
+          return <PhotoCard key={item.id} item={item} onOpen={() => setLightboxIndex(photoIdx)} />
+        })}
       </div>
 
       {/* Footer */}
@@ -378,15 +376,18 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       {/* Lightbox */}
       {lightboxItem && (
         <div
-          onClick={() => setLightboxItem(null)}
+          onClick={() => setLightboxIndex(null)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)',
             zIndex: 1000, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
           }}
         >
+          {/* Close */}
           <button
-            onClick={() => setLightboxItem(null)}
+            onClick={() => setLightboxIndex(null)}
             style={{
               position: 'absolute', top: '16px', right: '20px',
               background: 'transparent', border: 'none', color: 'white',
@@ -395,6 +396,35 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >×</button>
+
+          {/* Prev arrow */}
+          {photoItems.length > 1 && (
+            <button
+              onClick={handleLightboxPrev}
+              style={{
+                position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
+                background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+                borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 0,
+              }}
+            >‹</button>
+          )}
+
+          {/* Next arrow */}
+          {photoItems.length > 1 && (
+            <button
+              onClick={handleLightboxNext}
+              style={{
+                position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)',
+                background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+                borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 0,
+              }}
+            >›</button>
+          )}
+
           <img
             src={lightboxItem.streamUrl}
             alt=""
@@ -429,33 +459,20 @@ function VideoCard({ item }: { item: MediaFile }) {
         controls
         preload="metadata"
         playsInline
+        {...({'webkit-playsinline': ''} as object)}
         style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', maxWidth: '100%' }}
       />
-      <a
-        href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}`}
-        download={item.name}
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: '100%', marginTop: '8px', padding: '10px 16px',
-          background: '#e97872', color: 'white', border: 'none', borderRadius: '20px',
-          fontFamily: "'Poppins', sans-serif", fontSize: '11px', textTransform: 'uppercase',
-          letterSpacing: '0.06em', textDecoration: 'none',
-          cursor: 'pointer', boxSizing: 'border-box', minHeight: '44px',
-        }}
-      >
-        Télécharger
-      </a>
     </div>
   )
 }
 
-function PhotoCard({ item, onOpen }: { item: MediaFile; onOpen: (item: MediaFile) => void }) {
+function PhotoCard({ item, onOpen }: { item: MediaFile; onOpen: () => void }) {
   const [hovered, setHovered] = useState(false)
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => onOpen(item)}
+      onClick={onOpen}
       style={{ position: 'relative', aspectRatio: '9/16', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', width: '100%' }}
     >
       <img
@@ -464,21 +481,11 @@ function PhotoCard({ item, onOpen }: { item: MediaFile; onOpen: (item: MediaFile
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
       {hovered && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <a
-            href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}`}
-            download={item.name}
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: 'transparent', border: '0.5px solid white', color: 'white',
-              padding: '8px 16px', borderRadius: '14px', fontSize: '10px',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              fontFamily: "'Poppins', sans-serif", textDecoration: 'none',
-              minHeight: '44px', display: 'flex', alignItems: 'center',
-            }}
-          >
-            Télécharger
-          </a>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
         </div>
       )}
     </div>
