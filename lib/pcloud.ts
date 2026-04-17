@@ -1,4 +1,4 @@
-const PCLOUD_API = 'https://api.pcloud.com'
+const PCLOUD_API = 'https://eapi.pcloud.com'
 const TOKEN = process.env.PCLOUD_ACCESS_TOKEN
 
 export type PCloudFile = {
