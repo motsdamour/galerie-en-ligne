@@ -84,5 +84,7 @@ export async function GET(req: NextRequest) {
     .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at, password_plain')
     .order('created_at', { ascending: false })
 
+  console.log('events data:', JSON.stringify(data?.slice(0, 2)))
+
   return NextResponse.json(data)
 }
