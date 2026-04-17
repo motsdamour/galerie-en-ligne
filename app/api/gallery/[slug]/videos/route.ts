@@ -64,17 +64,22 @@ export async function GET(
           )
           const photosData = await photosRes.json()
           const files = (photosData.metadata?.contents ?? []).filter((c: any) => !c.isfolder)
+          const videoExts = ['.mp4', '.mov', '.webm', '.avi']
           guestPhotos = files
             .filter((f: any) => !isEditor ? !hiddenFiles.has(String(f.fileid)) : true)
-            .map((f: any) => ({
-              id: f.fileid,
-              name: f.name.replace(/\.[^/.]+$/, ''),
-              size: f.size,
-              type: 'image' as const,
-              hidden: hiddenFiles.has(String(f.fileid)),
-              streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
-              downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
-            }))
+            .map((f: any) => {
+              const isVideo = videoExts.some(ext => f.name.toLowerCase().endsWith(ext))
+              return {
+                id: f.fileid,
+                name: f.name.replace(/\.[^/.]+$/, ''),
+                size: f.size,
+                type: isVideo ? 'video' as const : 'image' as const,
+                hidden: hiddenFiles.has(String(f.fileid)),
+                streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
+                downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
+                thumbUrl: isVideo ? `/api/proxy/${f.fileid}?thumb=1` : undefined,
+              }
+            })
         }
       } catch {}
     }

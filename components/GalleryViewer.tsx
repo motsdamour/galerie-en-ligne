@@ -187,7 +187,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const currentFolder = folders[activeTab]
   const currentItems = currentFolder?.videos ?? []
   const isPhotosTab = currentFolder ? tabLabel(currentFolder.name) === 'Photos' : false
-  const photoItems = currentItems.filter(item => isPhotosTab || item.type === 'image')
+  const photoItems = showGuestTab
+    ? guestPhotos.filter(item => item.type === 'image' && !hiddenIds.has(item.id))
+    : currentItems.filter(item => isPhotosTab || item.type === 'image')
 
   useEffect(() => {
     if (lightboxIndex === null) return
@@ -482,7 +484,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,video/*"
               multiple
               id="guest-upload"
               style={{ display: 'none' }}
@@ -501,7 +503,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
-              {uploading ? `${uploadProgress.done}/${uploadProgress.total}...` : 'Ajouter mes photos'}
+              {uploading ? `${uploadProgress.done}/${uploadProgress.total}...` : 'Ajouter photos & videos'}
             </label>
             {uploadSuccess && (
               <p style={{ fontSize: '13px', color: '#0f6e56', fontFamily: "'Poppins', sans-serif", marginTop: '12px' }}>
@@ -510,19 +512,31 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             )}
           </div>
 
-          {/* Guest photos grid */}
-          <div className="gallery-grid-photo">
-            {guestPhotos.filter(p => !hiddenIds.has(p.id)).map(item => {
-              const isHidden = item.hidden || false
-              return <PhotoCard key={item.id} item={item} onOpen={() => {}} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
-            })}
-          </div>
-
-          {guestPhotos.filter(p => !hiddenIds.has(p.id)).length === 0 && !uploading && (
-            <p style={{ textAlign: 'center', fontSize: '13px', color: t.muted, fontFamily: "'Poppins', sans-serif", marginTop: '20px' }}>
-              Aucune photo pour l'instant. Soyez le premier a partager vos souvenirs !
-            </p>
-          )}
+          {/* Guest media grid */}
+          {(() => {
+            const visibleGuest = guestPhotos.filter(p => !hiddenIds.has(p.id))
+            const guestPhotoItems = visibleGuest.filter(p => p.type === 'image')
+            const hasVideos = visibleGuest.some(p => p.type === 'video')
+            return (
+              <>
+                <div className={hasVideos ? 'gallery-grid-video' : 'gallery-grid-photo'}>
+                  {visibleGuest.map(item => {
+                    const isHidden = item.hidden || false
+                    if (item.type === 'video') {
+                      return <VideoCard key={item.id} item={item} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+                    }
+                    const photoIdx = guestPhotoItems.findIndex(p => p.id === item.id)
+                    return <PhotoCard key={item.id} item={item} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+                  })}
+                </div>
+                {visibleGuest.length === 0 && !uploading && (
+                  <p style={{ textAlign: 'center', fontSize: '13px', color: t.muted, fontFamily: "'Poppins', sans-serif", marginTop: '20px' }}>
+                    Aucun media pour l'instant. Soyez le premier a partager vos souvenirs !
+                  </p>
+                )}
+              </>
+            )
+          })()}
         </div>
       )}
 

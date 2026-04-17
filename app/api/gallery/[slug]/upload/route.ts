@@ -3,8 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { isAuthorized } from '@/lib/auth'
 
 const PCLOUD_API = 'https://eapi.pcloud.com'
-const MAX_SIZE = 20 * 1024 * 1024 // 20MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/webp']
+const MAX_SIZE = 200 * 1024 * 1024 // 200MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm']
 
 export async function POST(
   req: NextRequest,
@@ -44,8 +44,10 @@ export async function POST(
     return NextResponse.json({ error: 'Fichier trop volumineux (max 20MB)' }, { status: 400 })
   }
 
-  if (!ALLOWED_TYPES.includes(file.type) && !file.name.toLowerCase().endsWith('.heic')) {
-    return NextResponse.json({ error: 'Format non supporte (jpg, png, heic, webp)' }, { status: 400 })
+  const ext = file.name.toLowerCase().split('.').pop() || ''
+  const allowedExts = ['jpg', 'jpeg', 'png', 'heic', 'webp', 'mp4', 'mov', 'webm']
+  if (!ALLOWED_TYPES.includes(file.type) && !allowedExts.includes(ext)) {
+    return NextResponse.json({ error: 'Format non supporte (jpg, png, heic, webp, mp4, mov, webm)' }, { status: 400 })
   }
 
   // Trouver ou creer le sous-dossier "photos-invites"
