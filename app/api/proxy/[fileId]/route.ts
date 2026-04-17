@@ -1,4 +1,3 @@
-export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(
@@ -8,6 +7,8 @@ export async function GET(
   const { fileId } = await context.params
   const token = process.env.PCLOUD_AUTH_TOKEN
   const url = new URL(request.url)
+  const isDownload = url.searchParams.get('download')
+  const filename = url.searchParams.get('filename') || 'file'
 
   const linkRes = await fetch(
     `https://eapi.pcloud.com/getfilelink?auth=${token}&fileid=${fileId}`
@@ -16,30 +17,19 @@ export async function GET(
   if (linkData.result !== 0) return new Response('pCloud error', { status: 502 })
 
   const fileUrl = `https://${linkData.hosts[0]}${linkData.path}`
-  const rangeHeader = request.headers.get('range')
-  const fetchHeaders: HeadersInit = {}
-  if (rangeHeader) fetchHeaders['range'] = rangeHeader
 
-  const fileRes = await fetch(fileUrl, { headers: fetchHeaders })
-
-  const responseHeaders = new Headers()
-  responseHeaders.set('accept-ranges', 'bytes')
-  responseHeaders.set('content-type', fileRes.headers.get('content-type') || 'application/octet-stream')
-  responseHeaders.set('cache-control', 'no-store')
-
-  const contentLength = fileRes.headers.get('content-length')
-  if (contentLength) responseHeaders.set('content-length', contentLength)
-
-  const contentRange = fileRes.headers.get('content-range')
-  if (contentRange) responseHeaders.set('content-range', contentRange)
-
-  if (url.searchParams.get('download')) {
-    const filename = url.searchParams.get('filename') || 'file'
-    responseHeaders.set('content-disposition', `attachment; filename="${filename}"`)
+  // Pour le téléchargement : forcer content-disposition
+  if (isDownload) {
+    const fileRes = await fetch(fileUrl)
+    const headers = new Headers()
+    headers.set('content-disposition', `attachment; filename="${filename}"`)
+    headers.set('content-type', fileRes.headers.get('content-type') || 'application/octet-stream')
+    const contentLength = fileRes.headers.get('content-length')
+    if (contentLength) headers.set('content-length', contentLength)
+    return new Response(fileRes.body, { status: 200, headers })
   }
 
-  return new Response(fileRes.body, {
-    status: fileRes.status,
-    headers: responseHeaders,
-  })
+  // Pour le streaming vidéo/photo : redirect direct vers pCloud
+  // pCloud liens sont valides ~1h, Safari iOS les lit parfaitement en redirect
+  return Response.redirect(fileUrl, 302)
 }
