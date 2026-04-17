@@ -10,23 +10,68 @@ export type PCloudFile = {
   thumb?: boolean
 }
 
-// Liste les fichiers vidéo d'un dossier pCloud
+export type PCloudFolder = {
+  name: string
+  folderid: number
+  videos: PCloudFile[]
+}
+
+function flattenVideos(contents: any[]): PCloudFile[] {
+  const result: PCloudFile[] = []
+  for (const item of contents) {
+    if (item.isfolder) {
+      result.push(...flattenVideos(item.contents ?? []))
+    } else if (
+      item.contenttype?.startsWith('video/') ||
+      /\.(mp4|mov|avi|webm|mkv)$/i.test(item.name)
+    ) {
+      result.push(item)
+    }
+  }
+  return result
+}
+
+// Liste les fichiers vidéo d'un dossier pCloud (récursif)
 export async function listVideos(folderId: string): Promise<PCloudFile[]> {
   const res = await fetch(
     `${PCLOUD_API}/listfolder?auth=${TOKEN}&folderid=${folderId}&recursive=1`,
-    { next: { revalidate: 60 } } // cache 60s
+    { next: { revalidate: 60 } }
   )
   const data = await res.json()
 
   if (data.error) throw new Error(`pCloud error: ${data.error}`)
 
-  const contents: PCloudFile[] = data.metadata?.contents ?? []
+  return flattenVideos(data.metadata?.contents ?? [])
+}
 
-  // Filtrer uniquement les vidéos
-  return contents.filter(f =>
-    f.contenttype?.startsWith('video/') ||
-    /\.(mp4|mov|avi|webm|mkv)$/i.test(f.name)
+// Liste les vidéos organisées par sous-dossier
+export async function listVideosByFolder(rootFolderId: string): Promise<PCloudFolder[]> {
+  const res = await fetch(
+    `${PCLOUD_API}/listfolder?auth=${TOKEN}&folderid=${rootFolderId}&recursive=0`,
+    { next: { revalidate: 60 } }
   )
+  const data = await res.json()
+
+  if (data.error) throw new Error(`pCloud error: ${data.error}`)
+
+  const contents = data.metadata?.contents ?? []
+  const subfolders = contents.filter((c: any) => c.isfolder)
+
+  if (subfolders.length === 0) {
+    const videos = flattenVideos(contents)
+    return videos.length > 0
+      ? [{ name: 'Vidéos', folderid: Number(rootFolderId), videos }]
+      : []
+  }
+
+  const results = await Promise.all(
+    subfolders.map(async (folder: any) => {
+      const videos = await listVideos(String(folder.folderid))
+      return { name: folder.name, folderid: folder.folderid, videos }
+    })
+  )
+
+  return results.filter(f => f.videos.length > 0)
 }
 
 // Génère un lien de téléchargement temporaire (24h)
@@ -51,7 +96,6 @@ export async function getStreamLink(fileId: number): Promise<string> {
   const data = await res.json()
 
   if (data.error) {
-    // Fallback sur lien de téléchargement direct
     return getDownloadLink(fileId)
   }
 

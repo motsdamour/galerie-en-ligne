@@ -10,18 +10,47 @@ type Video = {
   downloadUrl: string
 }
 
+type Folder = {
+  name: string
+  folderid: number
+  videos: Video[]
+}
+
 type Event = {
   coupleName: string
   eventDate: string
 }
 
+function cleanName(raw: string): string {
+  return raw
+    .replace(/\.[^/.]+$/, '')
+    .replace(/_/g, ' ')
+    .replace(/\s+\d+$/, '')
+    .replace(/^\S/, c => c.toUpperCase())
+}
+
+function tabLabel(name: string): string {
+  const map: Record<string, string> = {
+    "photobooth": "Photos",
+    "livre d'or": "Livre d'or",
+    "boite a questions": "Boîte à questions",
+    "boite à questions": "Boîte à questions",
+    "boîte à questions": "Boîte à questions",
+  }
+  const key = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
+  const normalized = name.toLowerCase()
+  return map[normalized] ?? map[key] ?? name.charAt(0).toUpperCase() + name.slice(1)
+}
+
 export default function GalleryViewer({ slug }: { slug: string }) {
   const [event, setEvent] = useState<Event | null>(null)
-  const [videos, setVideos] = useState<Video[]>([])
+  const [folders, setFolders] = useState<Folder[]>([])
+  const [totalVideos, setTotalVideos] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [activeVideo, setActiveVideo] = useState<Video | null>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const [activeTab, setActiveTab] = useState(0)
+  const [playingId, setPlayingId] = useState<number | null>(null)
 
   useEffect(() => {
     fetch(`/api/gallery/${slug}/videos`)
@@ -29,7 +58,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       .then(data => {
         if (data.error) { setError(data.error); return }
         setEvent(data.event)
-        setVideos(data.videos)
+        setFolders(data.folders ?? [])
+        setTotalVideos(data.totalVideos ?? 0)
       })
       .catch(() => setError('Erreur de chargement'))
       .finally(() => setLoading(false))
@@ -39,14 +69,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     ? new Date(event.eventDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : ''
 
-  function openVideo(video: Video) {
-    setActiveVideo(video)
-  }
-
-  function closeVideo() {
-    if (videoRef.current) videoRef.current.pause()
-    setActiveVideo(null)
-  }
+  const currentFolder = folders[activeTab]
+  const currentVideos = currentFolder?.videos ?? []
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)' }}>
@@ -89,7 +113,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         )}
 
         <button className="btn-rose" onClick={() => {
-          videos.forEach(v => {
+          currentVideos.forEach(v => {
             const a = document.createElement('a')
             a.href = v.downloadUrl
             a.download = v.name
@@ -103,7 +127,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       {/* Hero */}
       <div style={{ padding: '40px 32px 16px', textAlign: 'center' }}>
         <p style={{ fontSize: '10px', letterSpacing: '0.18em', color: 'var(--rose)', textTransform: 'uppercase', fontFamily: 'Arial', marginBottom: '10px' }}>
-          {videos.length} souvenir{videos.length > 1 ? 's' : ''} partagé{videos.length > 1 ? 's' : ''} avec amour
+          {totalVideos} souvenir{totalVideos > 1 ? 's' : ''} partagé{totalVideos > 1 ? 's' : ''} avec amour
         </p>
         <h1 style={{ fontSize: '30px', fontWeight: 400, fontStyle: 'italic', color: 'var(--text-dark)', marginBottom: '6px' }}>
           Vos mots d'amour
@@ -114,14 +138,43 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         <div className="ornament"><div className="ornament-line"/><div className="ornament-diamond"/><div className="ornament-line"/></div>
       </div>
 
+      {/* Tabs */}
+      {folders.length > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', padding: '0 28px 24px' }}>
+          {folders.map((folder, i) => (
+            <button
+              key={folder.folderid}
+              onClick={() => { setActiveTab(i); setPlayingId(null) }}
+              style={{
+                background: activeTab === i ? 'var(--rose)' : 'transparent',
+                color: activeTab === i ? 'white' : 'var(--brown-muted)',
+                border: `0.5px solid ${activeTab === i ? 'var(--rose)' : 'var(--border)'}`,
+                borderRadius: '20px',
+                padding: '7px 20px',
+                fontSize: '12px',
+                fontFamily: 'Arial',
+                cursor: 'pointer',
+                letterSpacing: '0.04em',
+                transition: 'all 0.15s',
+              }}
+            >
+              {tabLabel(folder.name)}
+              <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({folder.videos.length})</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Grid */}
       <div style={{ padding: '0 28px 48px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px' }}>
-        {videos.map((video, i) => (
+        {currentVideos.map((video, i) => (
           <VideoCard
             key={video.id}
             video={video}
             index={i}
-            onPlay={() => openVideo(video)}
+            isPlaying={playingId === video.id}
+            onPlay={() => setPlayingId(video.id)}
+            onStop={() => setPlayingId(null)}
           />
         ))}
       </div>
@@ -131,56 +184,39 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         <span style={{ fontSize: '11px', color: 'var(--brown-light)', fontFamily: 'Arial', letterSpacing: '0.06em' }}>galerie.mots-damour.fr</span>
         <span style={{ fontSize: '11px', color: 'var(--brown-light)', fontFamily: 'Arial' }}>Accès protégé · Lien valable 12 mois</span>
       </div>
-
-      {/* Lightbox */}
-      {activeVideo && (
-        <div
-          onClick={closeVideo}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(44,44,42,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '24px' }}
-        >
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '800px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <p style={{ color: 'rgba(255,255,255,0.9)', fontStyle: 'italic', fontSize: '18px' }}>{activeVideo.name}</p>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <a href={activeVideo.downloadUrl} download={activeVideo.name} className="btn-rose" style={{ textDecoration: 'none' }}>
-                  Télécharger
-                </a>
-                <button onClick={closeVideo} style={{ background: 'transparent', border: '0.5px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.7)', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px' }}>
-                  ×
-                </button>
-              </div>
-            </div>
-            <video
-              ref={videoRef}
-              src={activeVideo.streamUrl}
-              controls
-              autoPlay
-              style={{ width: '100%', borderRadius: '8px', background: '#000' }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
-function VideoCard({ video, index, onPlay }: { video: Video; index: number; onPlay: () => void }) {
+function VideoCard({ video, index, isPlaying, onPlay, onStop }: {
+  video: Video
+  index: number
+  isPlaying: boolean
+  onPlay: () => void
+  onStop: () => void
+}) {
   const [hovered, setHovered] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const bgColors = ['#ede8e0', '#e8ddd4', '#f0e8e0', '#e4dcd4']
   const bg = bgColors[index % bgColors.length]
   const isWide = index === 0
+  const displayName = cleanName(video.name)
+
+  useEffect(() => {
+    if (isPlaying && videoRef.current) {
+      videoRef.current.play().catch(() => {})
+    }
+  }, [isPlaying])
 
   return (
     <div
-      onClick={onPlay}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         gridColumn: isWide ? 'span 2' : 'span 1',
-        aspectRatio: isWide ? '16/9' : '9/16',
+        aspectRatio: isPlaying ? undefined : (isWide ? '16/9' : '9/16'),
         background: bg,
         borderRadius: '8px',
-        cursor: 'pointer',
         position: 'relative',
         overflow: 'hidden',
         display: 'flex',
@@ -189,49 +225,84 @@ function VideoCard({ video, index, onPlay }: { video: Video; index: number; onPl
         flexDirection: 'column',
         gap: '10px',
         transition: 'transform 0.15s',
-        transform: hovered ? 'scale(1.01)' : 'scale(1)',
+        transform: hovered && !isPlaying ? 'scale(1.01)' : 'scale(1)',
       }}
     >
-      {/* Play icon */}
-      <div style={{
-        width: '44px', height: '44px', borderRadius: '50%',
-        border: `1.5px solid rgba(201,116,138,${hovered ? 0.9 : 0.5})`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: hovered ? 'rgba(201,116,138,0.1)' : 'transparent',
-        transition: 'all 0.15s',
-      }}>
-        <div style={{ width: 0, height: 0, borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderLeft: '13px solid #c9748a', marginLeft: '3px', opacity: hovered ? 1 : 0.6 }}/>
-      </div>
-
-      <p style={{ fontSize: '12px', color: 'var(--brown-muted)', fontFamily: 'Arial', fontStyle: 'italic' }}>{video.name}</p>
-
-      {/* Overlay au hover */}
-      {hovered && (
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          background: 'rgba(250,248,245,0.9)',
-          padding: '12px',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '8px',
-        }}>
-          <button className="btn-rose" onClick={e => { e.stopPropagation(); onPlay() }}>Regarder</button>
-          <a
-            href={video.downloadUrl}
-            download={video.name}
-            className="btn-rose"
-            style={{ textDecoration: 'none' }}
-            onClick={e => e.stopPropagation()}
+      {isPlaying ? (
+        <div style={{ width: '100%', background: '#000', borderRadius: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(250,248,245,0.97)' }}>
+            <p style={{ fontSize: '12px', fontStyle: 'italic', color: 'var(--text-dark)' }}>{displayName}</p>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <a
+                href={video.downloadUrl}
+                download={video.name}
+                className="btn-rose"
+                style={{ textDecoration: 'none', fontSize: '11px', padding: '4px 12px' }}
+              >
+                Télécharger
+              </a>
+              <button
+                onClick={onStop}
+                style={{ background: 'transparent', border: '0.5px solid var(--border)', color: 'var(--brown-muted)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontSize: '14px', lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <video
+            ref={videoRef}
+            src={video.streamUrl}
+            controls
+            autoPlay
+            style={{ width: '100%', display: 'block', maxHeight: '480px' }}
+          />
+        </div>
+      ) : (
+        <>
+          <div
+            onClick={onPlay}
+            style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%', height: '100%', justifyContent: 'center' }}
           >
-            Télécharger
-          </a>
-        </div>
-      )}
+            <div style={{
+              width: '44px', height: '44px', borderRadius: '50%',
+              border: `1.5px solid rgba(201,116,138,${hovered ? 0.9 : 0.5})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: hovered ? 'rgba(201,116,138,0.1)' : 'transparent',
+              transition: 'all 0.15s',
+            }}>
+              <div style={{ width: 0, height: 0, borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderLeft: '13px solid #c9748a', marginLeft: '3px', opacity: hovered ? 1 : 0.6 }}/>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--brown-muted)', fontFamily: 'Arial', fontStyle: 'italic' }}>{displayName}</p>
+          </div>
 
-      {index === 0 && (
-        <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--rose)', color: 'white', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '10px', fontFamily: 'Arial' }}>
-          Nouveau
-        </div>
+          {hovered && (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: 'rgba(250,248,245,0.9)',
+              padding: '12px',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '8px',
+            }}>
+              <button className="btn-rose" onClick={onPlay}>Regarder</button>
+              <a
+                href={video.downloadUrl}
+                download={video.name}
+                className="btn-rose"
+                style={{ textDecoration: 'none' }}
+                onClick={e => e.stopPropagation()}
+              >
+                Télécharger
+              </a>
+            </div>
+          )}
+
+          {index === 0 && (
+            <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--rose)', color: 'white', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '10px', fontFamily: 'Arial' }}>
+              Nouveau
+            </div>
+          )}
+        </>
       )}
     </div>
   )

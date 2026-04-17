@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isAuthorized } from '@/lib/auth'
-import { listVideos, getStreamLink, getDownloadLink } from '@/lib/pcloud'
+import { listVideosByFolder, getStreamLink, getDownloadLink } from '@/lib/pcloud'
 
 export async function GET(
   req: NextRequest,
@@ -26,24 +26,33 @@ export async function GET(
   }
 
   try {
-    const files = await listVideos(event.pcloud_folder_id)
+    const folders = await listVideosByFolder(event.pcloud_folder_id)
 
-    const videos = await Promise.all(
-      files.map(async (f) => ({
-        id: f.fileid,
-        name: f.name.replace(/\.[^/.]+$/, ''), // nom sans extension
-        size: f.size,
-        streamUrl: await getStreamLink(f.fileid),
-        downloadUrl: await getDownloadLink(f.fileid),
+    const foldersWithUrls = await Promise.all(
+      folders.map(async (folder) => ({
+        name: folder.name,
+        folderid: folder.folderid,
+        videos: await Promise.all(
+          folder.videos.map(async (f) => ({
+            id: f.fileid,
+            name: f.name.replace(/\.[^/.]+$/, ''),
+            size: f.size,
+            streamUrl: await getStreamLink(f.fileid),
+            downloadUrl: await getDownloadLink(f.fileid),
+          }))
+        ),
       }))
     )
+
+    const totalVideos = foldersWithUrls.reduce((sum, f) => sum + f.videos.length, 0)
 
     return NextResponse.json({
       event: {
         coupleName: event.couple_name,
         eventDate: event.event_date,
       },
-      videos,
+      folders: foldersWithUrls,
+      totalVideos,
     })
   } catch (err) {
     console.error('pCloud error:', err)
