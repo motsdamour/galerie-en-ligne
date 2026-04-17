@@ -17,18 +17,14 @@ export async function GET(
   const fileUrl = `https://${linkData.hosts[0]}${linkData.path}`
 
   const rangeHeader = request.headers.get('range')
-  const fetchHeaders: HeadersInit = {}
-  if (rangeHeader) fetchHeaders['range'] = rangeHeader
+  const fetchHeaders: HeadersInit = { 'range': rangeHeader || 'bytes=0-' }
 
   const fileRes = await fetch(fileUrl, { headers: fetchHeaders })
 
   const responseHeaders = new Headers()
   responseHeaders.set('accept-ranges', 'bytes')
   responseHeaders.set('cache-control', 'public, max-age=3600')
-
-  const contentType = fileRes.headers.get('content-type')
-  if (contentType) responseHeaders.set('content-type', contentType)
-  else responseHeaders.set('content-type', 'video/mp4')
+  responseHeaders.set('content-type', 'video/mp4')
 
   const contentLength = fileRes.headers.get('content-length')
   if (contentLength) responseHeaders.set('content-length', contentLength)
@@ -42,8 +38,10 @@ export async function GET(
     responseHeaders.set('content-disposition', `attachment; filename="${filename}"`)
   }
 
+  const status = rangeHeader ? 206 : 200
+
   return new Response(fileRes.body, {
-    status: fileRes.status,
+    status,
     headers: responseHeaders,
   })
 }
