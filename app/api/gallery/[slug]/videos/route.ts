@@ -37,7 +37,8 @@ export async function GET(
             id: f.fileid,
             name: f.name.replace(/\.[^/.]+$/, ''),
             size: f.size,
-            streamUrl: await getStreamLink(f.fileid),
+            type: f.mediaType,
+            streamUrl: f.mediaType === 'video' ? await getStreamLink(f.fileid) : await getDownloadLink(f.fileid),
             downloadUrl: await getDownloadLink(f.fileid),
           }))
         ),

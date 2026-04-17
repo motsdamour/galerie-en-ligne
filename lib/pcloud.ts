@@ -8,6 +8,7 @@ export type PCloudFile = {
   created: string
   contenttype: string
   thumb?: boolean
+  mediaType: 'video' | 'image'
 }
 
 export type PCloudFolder = {
@@ -16,22 +17,31 @@ export type PCloudFolder = {
   videos: PCloudFile[]
 }
 
-function flattenVideos(contents: any[]): PCloudFile[] {
+function flattenMedia(contents: any[]): PCloudFile[] {
   const result: PCloudFile[] = []
   for (const item of contents) {
     if (item.isfolder) {
-      result.push(...flattenVideos(item.contents ?? []))
+      result.push(...flattenMedia(item.contents ?? []))
     } else if (
       item.contenttype?.startsWith('video/') ||
       /\.(mp4|mov|avi|webm|mkv)$/i.test(item.name)
     ) {
-      result.push(item)
+      result.push({ ...item, mediaType: 'video' })
+    } else if (
+      item.contenttype?.startsWith('image/') ||
+      /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(item.name)
+    ) {
+      result.push({ ...item, mediaType: 'image' })
     }
   }
   return result
 }
 
-// Liste les fichiers vidéo d'un dossier pCloud (récursif)
+function flattenVideos(contents: any[]): PCloudFile[] {
+  return flattenMedia(contents).filter(f => f.mediaType === 'video')
+}
+
+// Liste les fichiers média d'un dossier pCloud (récursif)
 export async function listVideos(folderId: string): Promise<PCloudFile[]> {
   const res = await fetch(
     `${PCLOUD_API}/listfolder?auth=${TOKEN}&folderid=${folderId}&recursive=1`,
@@ -41,7 +51,7 @@ export async function listVideos(folderId: string): Promise<PCloudFile[]> {
 
   if (data.error) throw new Error(`pCloud error: ${data.error}`)
 
-  return flattenVideos(data.metadata?.contents ?? [])
+  return flattenMedia(data.metadata?.contents ?? [])
 }
 
 // Liste les vidéos organisées par sous-dossier
@@ -58,7 +68,7 @@ export async function listVideosByFolder(rootFolderId: string): Promise<PCloudFo
   const subfolders = contents.filter((c: any) => c.isfolder)
 
   if (subfolders.length === 0) {
-    const videos = flattenVideos(contents)
+    const videos = flattenMedia(contents)
     return videos.length > 0
       ? [{ name: 'Vidéos', folderid: Number(rootFolderId), videos }]
       : []
