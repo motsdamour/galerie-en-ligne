@@ -43,7 +43,6 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState(0)
-  const [playingId, setPlayingId] = useState<number | null>(null)
 
   useEffect(() => {
     fetch(`/api/gallery/${slug}/videos`)
@@ -65,11 +64,6 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const currentFolder = folders[activeTab]
   const currentItems = currentFolder?.videos ?? []
   const isPhotosTab = currentFolder ? tabLabel(currentFolder.name) === 'Photos' : false
-
-  function handleTabChange(i: number) {
-    setActiveTab(i)
-    setPlayingId(null)
-  }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)' }}>
@@ -107,11 +101,15 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         )}
 
         <button className="btn-rose" onClick={() => {
-          currentItems.forEach(v => {
-            const a = document.createElement('a')
-            a.href = v.downloadUrl
-            a.download = v.name
-            a.click()
+          currentItems.forEach((video, i) => {
+            setTimeout(() => {
+              const a = document.createElement('a')
+              a.href = `/api/proxy/${video.id}?download=1&filename=${encodeURIComponent(video.name)}`
+              a.download = video.name
+              document.body.appendChild(a)
+              a.click()
+              document.body.removeChild(a)
+            }, i * 300)
           })
         }}>
           Tout télécharger
@@ -138,7 +136,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           {folders.map((folder, i) => (
             <button
               key={folder.folderid}
-              onClick={() => handleTabChange(i)}
+              onClick={() => setActiveTab(i)}
               style={{
                 background: activeTab === i ? 'var(--rose)' : 'transparent',
                 color: activeTab === i ? 'white' : 'var(--brown-muted)',
@@ -164,13 +162,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           isPhotosTab || item.type === 'image' ? (
             <PhotoCard key={item.id} item={item} />
           ) : (
-            <VideoCard
-              key={item.id}
-              item={item}
-              isPlaying={playingId === item.id}
-              onPlay={() => setPlayingId(item.id)}
-              onStop={() => setPlayingId(null)}
-            />
+            <VideoCard key={item.id} item={item} />
           )
         )}
       </div>
@@ -184,110 +176,37 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   )
 }
 
-function VideoCard({ item, isPlaying, onPlay, onStop }: {
-  item: MediaFile
-  isPlaying: boolean
-  onPlay: () => void
-  onStop: () => void
-}) {
-  const [hovered, setHovered] = useState(false)
-
-  if (isPlaying) {
-    return (
-      <div style={{
-        aspectRatio: '9/16',
-        background: '#000',
-        borderRadius: '10px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <button
-          onClick={onStop}
-          style={{
-            position: 'absolute', top: '8px', right: '8px', zIndex: 10,
-            background: 'rgba(0,0,0,0.6)', border: '0.5px solid rgba(255,255,255,0.3)',
-            color: 'white', width: '28px', height: '28px', borderRadius: '50%',
-            cursor: 'pointer', fontSize: '16px', lineHeight: 1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          ×
-        </button>
-        <video
-          src={item.streamUrl}
-          controls
-          autoPlay
-          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-        />
-      </div>
-    )
-  }
-
+function VideoCard({ item }: { item: MediaFile }) {
   return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onPlay}
-      style={{
-        aspectRatio: '9/16',
-        background: '#1c1c1c',
-        backgroundImage: item.thumbUrl ? `url(${item.thumbUrl})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        borderRadius: '10px',
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        transition: 'transform 0.15s',
-        transform: hovered ? 'scale(1.02)' : 'scale(1)',
-      }}
-    >
-      {/* Overlay sombre sur thumbnail */}
-      {item.thumbUrl && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
-      )}
-
-      {/* Bouton play */}
-      <div style={{
-        width: '50px', height: '50px', borderRadius: '50%',
-        border: `1.5px solid rgba(255,255,255,${hovered ? 0.9 : 0.5})`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: hovered ? 'rgba(255,255,255,0.15)' : 'transparent',
-        transition: 'all 0.15s',
-        position: 'relative', zIndex: 1,
-      }}>
-        <div style={{ width: 0, height: 0, borderTop: '9px solid transparent', borderBottom: '9px solid transparent', borderLeft: `14px solid rgba(255,255,255,${hovered ? 1 : 0.7})`, marginLeft: '4px' }}/>
-      </div>
-
-      {/* Hover overlay */}
-      {hovered && (
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2,
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
-          padding: '20px 12px 14px',
-          display: 'flex', justifyContent: 'center', gap: '8px',
-        }}>
-          <button
-            className="btn-rose"
-            onClick={(e) => { e.stopPropagation(); onPlay() }}
-            style={{ fontSize: '10px', padding: '6px 14px' }}
-          >
-            Regarder
-          </button>
-          <a
-            href={item.downloadUrl}
-            download={item.name}
-            className="btn-rose"
-            style={{ textDecoration: 'none', fontSize: '10px', padding: '6px 14px' }}
-            onClick={e => e.stopPropagation()}
-          >
-            Télécharger
-          </a>
-        </div>
-      )}
+    <div>
+      <video
+        src={`/api/proxy/${item.id}`}
+        controls
+        preload="metadata"
+        style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block' }}
+      />
+      <a
+        href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}`}
+        download={item.name}
+        style={{
+          display: 'block',
+          marginTop: '8px',
+          textAlign: 'center',
+          padding: '7px 0',
+          border: '0.5px solid var(--rose)',
+          borderRadius: '20px',
+          color: 'var(--rose)',
+          fontSize: '11px',
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          textDecoration: 'none',
+          transition: 'background 0.15s, color 0.15s',
+        }}
+        onMouseEnter={e => { (e.target as HTMLElement).style.background = 'var(--rose)'; (e.target as HTMLElement).style.color = 'white' }}
+        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; (e.target as HTMLElement).style.color = 'var(--rose)' }}
+      >
+        Télécharger
+      </a>
     </div>
   )
 }
