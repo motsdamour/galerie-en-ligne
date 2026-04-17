@@ -1,5 +1,5 @@
 const PCLOUD_API = 'https://eapi.pcloud.com'
-const TOKEN = process.env.PCLOUD_ACCESS_TOKEN
+const TOKEN = process.env.PCLOUD_AUTH_TOKEN
 
 export type PCloudFile = {
   fileid: number
@@ -13,7 +13,7 @@ export type PCloudFile = {
 // Liste les fichiers vidéo d'un dossier pCloud
 export async function listVideos(folderId: string): Promise<PCloudFile[]> {
   const res = await fetch(
-    `${PCLOUD_API}/listfolder?access_token=${TOKEN}&folderid=${folderId}&recursive=0`,
+    `${PCLOUD_API}/listfolder?auth=${TOKEN}&folderid=${folderId}&recursive=1`,
     { next: { revalidate: 60 } } // cache 60s
   )
   const data = await res.json()
@@ -32,7 +32,7 @@ export async function listVideos(folderId: string): Promise<PCloudFile[]> {
 // Génère un lien de téléchargement temporaire (24h)
 export async function getDownloadLink(fileId: number): Promise<string> {
   const res = await fetch(
-    `${PCLOUD_API}/getfilelink?access_token=${TOKEN}&fileid=${fileId}`
+    `${PCLOUD_API}/getfilelink?auth=${TOKEN}&fileid=${fileId}`
   )
   const data = await res.json()
 
@@ -46,7 +46,7 @@ export async function getDownloadLink(fileId: number): Promise<string> {
 // Génère un lien de streaming (pour le lecteur vidéo)
 export async function getStreamLink(fileId: number): Promise<string> {
   const res = await fetch(
-    `${PCLOUD_API}/getvideolink?access_token=${TOKEN}&fileid=${fileId}`
+    `${PCLOUD_API}/getvideolink?auth=${TOKEN}&fileid=${fileId}`
   )
   const data = await res.json()
 
