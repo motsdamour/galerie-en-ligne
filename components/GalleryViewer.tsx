@@ -246,7 +246,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       {/* Nav — 2 lignes */}
       <nav className="gallery-nav" style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, transition: 'background 0.2s' }}>
         {/* Ligne 1 : logo ← → télécharger + toggle */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: event ? '8px' : 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
           <img
             src="/logo.svg"
             alt="Mots d'Amour"
@@ -305,24 +305,23 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           </div>
         </div>
 
-        {/* Ligne 2 : nom du couple centré */}
-        {event && (
-          <p style={{ textAlign: 'center', fontSize: '13px', fontStyle: 'italic', fontWeight: 300, fontFamily: "'Poppins', sans-serif", color: t.text, margin: 0 }}>
-            {event.coupleName} · {formattedDate}
-          </p>
-        )}
       </nav>
 
       {/* Hero */}
       <div className="gallery-hero" style={{ textAlign: 'center' }}>
+        {event && (
+          <>
+            <h1 className="gallery-couple-name" style={{ color: '#3c3c3b', marginBottom: '4px' }}>
+              {event.coupleName}
+            </h1>
+            <p style={{ fontSize: '13px', color: '#999', fontFamily: "'Poppins', sans-serif", margin: '0 0 14px' }}>
+              {formattedDate}
+            </p>
+          </>
+        )}
         <p style={{ fontSize: '10px', letterSpacing: '0.18em', color: '#e97872', textTransform: 'uppercase', marginBottom: '10px' }}>
           {totalVideos} souvenir{totalVideos > 1 ? 's' : ''} partagé{totalVideos > 1 ? 's' : ''} avec amour
         </p>
-        {event && (
-          <h1 className="gallery-couple-name" style={{ color: t.text, marginBottom: '6px' }}>
-            {event.coupleName}
-          </h1>
-        )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '18px' }}>
           <div style={{ width: '40px', height: '0.5px', background: '#e97872', opacity: 0.4 }}/>
           <div style={{ width: '5px', height: '5px', background: '#e97872', transform: 'rotate(45deg)', opacity: 0.5 }}/>

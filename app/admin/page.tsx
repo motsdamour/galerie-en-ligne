@@ -29,6 +29,7 @@ export default function AdminPage() {
   const [created, setCreated] = useState<CreatedEvent | null>(null)
   const [editingPwd, setEditingPwd] = useState<{ id: string; value: string } | null>(null)
   const [savingPwd, setSavingPwd] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     const t = localStorage.getItem('admin_token')
@@ -56,6 +57,22 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/events', { headers: { Authorization: `Bearer ${t}` } })
     const data = await res.json()
     if (Array.isArray(data)) setEvents(data)
+  }
+
+  async function deleteEvent(id: string) {
+    if (!window.confirm('Supprimer cette galerie ?')) return
+    setDeletingId(id)
+    const res = await fetch(`/api/admin/events/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    setDeletingId(null)
+    if (res.ok) {
+      if (token) loadEvents(token)
+    } else {
+      const data = await res.json()
+      alert(data.error ?? 'Erreur lors de la suppression')
+    }
   }
 
   async function savePassword(id: string, newPassword: string) {
@@ -209,13 +226,27 @@ export default function AdminPage() {
                           <a href={`/galerie/${ev.slug}`} target="_blank" style={{ color: 'var(--rose)', textDecoration: 'none' }}>Voir →</a>
                         </td>
                         <td style={{ padding: '12px' }}>
-                          <button
-                            className="btn-rose"
-                            style={{ fontSize: '10px', padding: '4px 12px' }}
-                            onClick={() => setEditingPwd(editingPwd?.id === ev.id ? null : { id: ev.id, value: '' })}
-                          >
-                            Modifier mdp
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <button
+                              className="btn-rose"
+                              style={{ fontSize: '10px', padding: '4px 12px' }}
+                              onClick={() => setEditingPwd(editingPwd?.id === ev.id ? null : { id: ev.id, value: '' })}
+                            >
+                              Modifier mdp
+                            </button>
+                            <button
+                              style={{
+                                background: 'transparent', border: 'none', color: '#e57373',
+                                fontFamily: "'Poppins', sans-serif", fontSize: '11px',
+                                cursor: deletingId === ev.id ? 'default' : 'pointer',
+                                opacity: deletingId === ev.id ? 0.5 : 1, padding: '4px 0',
+                              }}
+                              disabled={deletingId === ev.id}
+                              onClick={() => deleteEvent(ev.id)}
+                            >
+                              {deletingId === ev.id ? '…' : 'Supprimer'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       {editingPwd?.id === ev.id && (

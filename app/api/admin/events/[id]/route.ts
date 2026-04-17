@@ -34,3 +34,29 @@ export async function PATCH(
 
   return NextResponse.json({ success: true })
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const authHeader = req.headers.get('authorization')
+  const token = authHeader?.replace('Bearer ', '')
+
+  if (!token || !verifyAdminToken(token)) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
+  const { id } = await params
+
+  const db = supabaseAdmin()
+  const { error } = await db
+    .from('events')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
+}
