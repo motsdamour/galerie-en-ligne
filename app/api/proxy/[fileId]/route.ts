@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import ffmpegPath from 'ffmpeg-static'
 import { spawn } from 'child_process'
 
 export const dynamic = 'force-dynamic'
@@ -32,7 +33,7 @@ export async function GET(
   }
 
   // Remuxer OPUS → AAC avec FFmpeg à la volée
-  const ffmpeg = spawn('ffmpeg', [
+  const ffmpeg = spawn(ffmpegPath!, [
     '-i', fileUrl,
     '-c:v', 'copy',      // copie vidéo sans réencoder
     '-c:a', 'aac',       // convertir audio en AAC
