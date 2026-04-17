@@ -10,6 +10,7 @@ type MediaFile = {
   streamUrl: string
   downloadUrl: string
   thumbUrl?: string
+  hlsUrl?: string | null
   type: 'video' | 'image'
 }
 
@@ -448,15 +449,21 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 }
 
 function VideoCard({ item }: { item: MediaFile }) {
+  const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
   return (
     <div style={{ width: '100%' }}>
       <video
-        src={`/api/proxy/${item.id}`}
         controls
         playsInline
         preload="metadata"
         style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }}
-      />
+      >
+        {isSafari && item.hlsUrl ? (
+          <source src={item.hlsUrl} type="application/x-mpegURL" />
+        ) : null}
+        <source src={`/api/proxy/${item.id}`} type="video/mp4" />
+      </video>
     </div>
   )
 }

@@ -28,19 +28,36 @@ export async function GET(
   try {
     const folders = await listVideosByFolder(event.pcloud_folder_id)
 
-    const foldersWithUrls = folders.map((folder) => ({
+    const pcloudToken = process.env.PCLOUD_AUTH_TOKEN
+
+    const foldersWithUrls = await Promise.all(folders.map(async (folder) => ({
       name: folder.name,
       folderid: folder.folderid,
-      videos: folder.videos.map((f) => ({
-        id: f.fileid,
-        name: f.name.replace(/\.[^/.]+$/, ''),
-        size: f.size,
-        type: f.mediaType,
-        streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
-        downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
-        thumbUrl: f.mediaType === 'video' ? `/api/proxy/${f.fileid}?thumb=1` : undefined,
+      videos: await Promise.all(folder.videos.map(async (f) => {
+        let hlsUrl: string | null = null
+        if (f.mediaType === 'video' && pcloudToken) {
+          try {
+            const hlsRes = await fetch(
+              `https://eapi.pcloud.com/getvideolink?auth=${pcloudToken}&fileid=${f.fileid}&abitrate=320&vbitrate=4000&resolution=1080x1920`
+            )
+            const hlsData = await hlsRes.json()
+            if (hlsData.result === 0) {
+              hlsUrl = `https://${hlsData.hosts[0]}${hlsData.path}`
+            }
+          } catch {}
+        }
+        return {
+          id: f.fileid,
+          name: f.name.replace(/\.[^/.]+$/, ''),
+          size: f.size,
+          type: f.mediaType,
+          streamUrl: `/api/proxy/${f.fileid}?filename=${encodeURIComponent(f.name)}`,
+          downloadUrl: `/api/proxy/${f.fileid}?download=1&filename=${encodeURIComponent(f.name)}`,
+          thumbUrl: f.mediaType === 'video' ? `/api/proxy/${f.fileid}?thumb=1` : undefined,
+          hlsUrl,
+        }
       })),
-    }))
+    })))
 
     const totalVideos = foldersWithUrls.reduce((sum, f) => sum + f.videos.length, 0)
 
