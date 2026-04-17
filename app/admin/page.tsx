@@ -304,7 +304,7 @@ export default function AdminPage() {
               <table style={{ width: '100%', fontSize: '12px', fontFamily: 'Arial', borderCollapse: 'collapse', minWidth: '1000px' }}>
                 <thead>
                   <tr style={{ borderBottom: '0.5px solid var(--border)' }}>
-                    {['Evenement', 'Loueur', 'Liens', 'Mot de passe', 'Lien maries', 'Actions'].map(h => (
+                    {['Evenement', 'Loueur', 'Liens', 'Mot de passe', 'Lien maries', 'Expiration', 'Actions'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--brown-muted)', fontWeight: 400, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                     ))}
                   </tr>
@@ -369,7 +369,7 @@ export default function AdminPage() {
 
                         {/* Lien maries */}
                         <td style={{ padding: '10px' }}>
-                          {ev.edit_token && (
+                          {ev.edit_token ? (
                             <button onClick={() => {
                               const url = `https://galerie.mots-damour.fr/galerie/${ev.slug}?edit_token=${ev.edit_token}`
                               navigator.clipboard.writeText(url)
@@ -377,7 +377,33 @@ export default function AdminPage() {
                             }} style={{ background: 'transparent', border: '0.5px solid var(--border)', cursor: 'pointer', padding: '4px 10px', borderRadius: '8px', fontSize: '10px', fontFamily: 'Arial', color: 'var(--brown-muted)' }}>
                               Copier
                             </button>
-                          )}
+                          ) : <span style={{ color: 'var(--brown-light)', fontSize: '11px' }}>—</span>}
+                        </td>
+
+                        {/* Expiration */}
+                        <td style={{ padding: '10px' }}>
+                          {(() => {
+                            const exp = ev.expires_at ? new Date(ev.expires_at) : new Date(new Date(ev.created_at).getTime() + 365 * 24 * 60 * 60 * 1000)
+                            const days = Math.max(0, Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+                            const color = days <= 0 ? '#993556' : days < 7 ? '#c0392b' : days < 30 ? '#e67e22' : '#0f6e56'
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ fontSize: '11px', color, fontWeight: 500 }}>
+                                  {days <= 0 ? 'Expiree' : `${days}j`}
+                                </span>
+                                <button onClick={async () => {
+                                  await fetch(`/api/admin/events/${ev.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                    body: JSON.stringify({ extend: true }),
+                                  })
+                                  if (token) loadEvents(token)
+                                }} style={{ background: 'transparent', border: '0.5px solid var(--border)', cursor: 'pointer', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontFamily: 'Arial', color: 'var(--brown-muted)' }}>
+                                  +365j
+                                </button>
+                              </div>
+                            )
+                          })()}
                         </td>
 
                         {/* Actions */}
@@ -401,7 +427,7 @@ export default function AdminPage() {
                       </tr>
                       {editingPwd?.id === ev.id && (
                         <tr key={`${ev.id}-pwd`} style={{ borderBottom: '0.5px solid var(--border)', background: 'var(--cream)' }}>
-                          <td colSpan={6} style={{ padding: '10px' }}>
+                          <td colSpan={7} style={{ padding: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <input type="text" placeholder="Nouveau mot de passe" value={editingPwd.value} onChange={e => setEditingPwd({ id: ev.id, value: e.target.value })}
                                 style={{ width: '200px', padding: '6px 10px', fontSize: '12px' }} autoFocus />

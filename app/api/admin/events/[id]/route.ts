@@ -44,6 +44,17 @@ export async function PATCH(
     updates.couple_email = body.couple_email?.trim() || null
   }
 
+  if (body.extend === true) {
+    const db = supabaseAdmin()
+    const { data: ev } = await db.from('events').select('expires_at, created_at').eq('id', id).single()
+    if (ev) {
+      const base = ev.expires_at ? new Date(ev.expires_at) : new Date(ev.created_at)
+      if (base < new Date()) base.setTime(Date.now())
+      base.setFullYear(base.getFullYear() + 1)
+      updates.expires_at = base.toISOString()
+    }
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Aucun champ à mettre à jour' }, { status: 400 })
   }

@@ -17,7 +17,7 @@ export async function GET(
   const db = supabaseAdmin()
   const { data: event } = await db
     .from('events')
-    .select('pcloud_folder_id, couple_name, event_date, hidden_files, edit_token')
+    .select('pcloud_folder_id, couple_name, event_date, hidden_files, edit_token, expires_at')
     .eq('slug', slug)
     .single()
 
@@ -51,6 +51,7 @@ export async function GET(
       event: {
         coupleName: event.couple_name,
         eventDate: event.event_date,
+        expiresAt: event.expires_at,
       },
       folders: foldersWithUrls,
       totalVideos,

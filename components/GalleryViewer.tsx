@@ -23,6 +23,7 @@ type Folder = {
 type GalleryEvent = {
   coupleName: string
   eventDate: string
+  expiresAt?: string
 }
 
 type Theme = {
@@ -340,9 +341,14 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       <div className="gallery-hero" style={{ textAlign: 'center' }}>
         {event && (
           <>
-            <h1 className="gallery-couple-name" style={{ color: '#3c3c3b', marginBottom: '14px' }}>
+            <h1 className="gallery-couple-name" style={{ color: '#3c3c3b', marginBottom: '6px' }}>
               {event.coupleName}
             </h1>
+            {event.expiresAt && (
+              <p style={{ fontSize: '11px', color: '#b4b2a9', fontFamily: "'Poppins', sans-serif", margin: '0 0 10px' }}>
+                Galerie disponible encore {Math.max(0, Math.ceil((new Date(event.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} jours
+              </p>
+            )}
           </>
         )}
         <p style={{ fontSize: '10px', letterSpacing: '0.18em', color: '#e97872', textTransform: 'uppercase', marginBottom: '10px' }}>
