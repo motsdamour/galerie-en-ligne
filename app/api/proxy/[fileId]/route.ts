@@ -1,49 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getStreamLink, getDownloadLink } from '@/lib/pcloud'
-
-const VIDEO_EXTS = /\.(mp4|mov|avi|webm|mkv)$/i
-
-// Cache in-memory des liens pCloud (valables ~1h côté pCloud)
-const linkCache = new Map<string, { url: string; expires: number }>()
-
-async function resolveLink(fileId: number, download: boolean): Promise<string> {
-  const key = `${download ? 'dl' : 'stream'}-${fileId}`
-  const cached = linkCache.get(key)
-  if (cached && cached.expires > Date.now()) return cached.url
-
-  const url = download ? await getDownloadLink(fileId) : await getStreamLink(fileId)
-  linkCache.set(key, { url, expires: Date.now() + 50 * 60 * 1000 }) // 50 min
-  return url
-}
+export const runtime = 'edge'
 
 export async function GET(
-  req: NextRequest,
+  req: Request,
   { params }: { params: Promise<{ fileId: string }> }
 ) {
   const { fileId } = await params
   const fileIdNum = parseInt(fileId, 10)
   if (isNaN(fileIdNum)) {
-    return new NextResponse('fileId invalide', { status: 400 })
+    return new Response('fileId invalide', { status: 400 })
   }
 
-  const download = req.nextUrl.searchParams.get('download') === '1'
-  const filename = req.nextUrl.searchParams.get('filename') ?? ''
-  const isVideo = VIDEO_EXTS.test(filename)
+  const token = process.env.PCLOUD_AUTH_TOKEN
+  if (!token) {
+    return new Response('Token manquant', { status: 500 })
+  }
 
+  const url = new URL(req.url)
+  const download = url.searchParams.get('download') === '1'
+  const filename = url.searchParams.get('filename') ?? ''
+
+  // Obtenir le lien pCloud côté serveur (IP du edge node)
   let pcloudUrl: string
   try {
-    pcloudUrl = await resolveLink(fileIdNum, download)
+    const res = await fetch(
+      `https://eapi.pcloud.com/getfilelink?auth=${token}&fileid=${fileIdNum}`
+    )
+    const data = await res.json() as { result?: number; error?: string; hosts?: string[]; path?: string }
+
+    if (data.error || !data.hosts?.[0] || !data.path) {
+      console.error('[proxy] pCloud error:', data.error ?? 'réponse invalide')
+      return new Response(`Erreur pCloud: ${data.error ?? 'réponse invalide'}`, { status: 502 })
+    }
+
+    pcloudUrl = `https://${data.hosts[0]}${data.path}`
   } catch (err) {
-    console.error('[proxy] resolveLink error:', err)
-    return new NextResponse('Erreur pCloud', { status: 502 })
+    console.error('[proxy] fetch pCloud error:', err)
+    return new Response('Erreur pCloud', { status: 502 })
   }
 
-  // Vidéos : redirect 302 vers pCloud — évite la limite 4.5MB de Vercel
-  if (isVideo) {
-    return NextResponse.redirect(pcloudUrl, 302)
-  }
-
-  // Images et autres petits fichiers : stream direct avec bons headers
+  // Transmettre le header Range si présent (seeking vidéo)
   const rangeHeader = req.headers.get('range')
   const upstreamHeaders: HeadersInit = {}
   if (rangeHeader) upstreamHeaders['Range'] = rangeHeader
@@ -51,19 +46,9 @@ export async function GET(
   let upstream: Response
   try {
     upstream = await fetch(pcloudUrl, { headers: upstreamHeaders })
-  } catch {
-    return new NextResponse('Erreur upstream', { status: 502 })
-  }
-
-  if (!upstream.ok && upstream.status !== 206) {
-    // Lien expiré : invalider le cache et réessayer
-    linkCache.delete(`${download ? 'dl' : 'stream'}-${fileIdNum}`)
-    try {
-      const freshUrl = await resolveLink(fileIdNum, download)
-      upstream = await fetch(freshUrl, { headers: upstreamHeaders })
-    } catch {
-      return new NextResponse('Erreur upstream', { status: 502 })
-    }
+  } catch (err) {
+    console.error('[proxy] fetch upstream error:', err)
+    return new Response('Erreur upstream', { status: 502 })
   }
 
   const resHeaders = new Headers()
@@ -84,7 +69,7 @@ export async function GET(
 
   resHeaders.set('cache-control', 'private, max-age=3600')
 
-  return new NextResponse(upstream.body, {
+  return new Response(upstream.body, {
     status: upstream.status,
     headers: resHeaders,
   })
