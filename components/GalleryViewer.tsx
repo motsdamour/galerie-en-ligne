@@ -373,7 +373,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         <button
           onClick={() => setShareOpen(true)}
           style={{
-            background: 'transparent', border: '0.5px solid #e97872', color: '#e97872',
+            background: 'transparent', border: '0.5px solid #C9A96E', color: '#C9A96E',
             padding: '8px 24px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer',
             fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase',
             marginTop: '12px',
@@ -427,9 +427,10 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       </div>
 
       {/* Footer */}
-      <div className="gallery-footer" style={{ borderTop: `0.5px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '11px', color: t.subtle, letterSpacing: '0.06em' }}>galerie.mots-damour.fr</span>
-        <span style={{ fontSize: '11px', color: t.subtle }}>Accès protégé · Lien valable 12 mois</span>
+      <div className="gallery-footer" style={{ borderTop: `0.5px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
+        <a href="https://mots-damour.fr" target="_blank" rel="noopener" style={{ fontSize: '11px', color: t.subtle, textDecoration: 'none', letterSpacing: '0.04em' }}>mots-damour.fr</a>
+        <a href="https://www.instagram.com/motsdamour.fr_/" target="_blank" rel="noopener" style={{ fontSize: '11px', color: t.subtle, textDecoration: 'none', letterSpacing: '0.04em' }}>@motsdamour.fr_</a>
+        <a href="mailto:bonjour@mots-damour.fr" style={{ fontSize: '11px', color: t.subtle, textDecoration: 'none', letterSpacing: '0.04em' }}>bonjour@mots-damour.fr</a>
       </div>
 
       {/* Share modal */}
