@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  --rose: #c9748a;
+  --rose-light: #f4dde4;
+  --rose-dark: #993556;
+  --cream: #faf8f5;
+  --cream-dark: #ede8e0;
+  --brown-muted: #888780;
+  --brown-light: #b4b2a9;
+  --text-dark: #2c2c2a;
+  --border: #e8e0d8;
+}
+
+body {
+  background: var(--cream);
+  color: var(--text-dark);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.btn-rose {
+  background: transparent;
+  border: 0.5px solid var(--rose);
+  color: var(--rose);
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-rose:hover { background: var(--rose); color: white; }
+
+.btn-rose-solid {
+  background: var(--rose);
+  border: none;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  transition: opacity 0.15s;
+}
+.btn-rose-solid:hover { opacity: 0.85; }
+
+.ornament { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 20px 0; }
+.ornament-line { width: 40px; height: 0.5px; background: var(--rose); opacity: 0.4; }
+.ornament-diamond { width: 5px; height: 5px; background: var(--rose); transform: rotate(45deg); opacity: 0.5; }
+
+input[type="text"], input[type="password"], input[type="email"], input[type="date"], select, textarea {
+  background: white;
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  color: var(--text-dark);
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--rose); }
