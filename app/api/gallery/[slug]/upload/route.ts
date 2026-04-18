@@ -50,22 +50,35 @@ export async function POST(
     return NextResponse.json({ error: 'Format non supporte (jpg, png, heic, webp, mp4, mov, webm)' }, { status: 400 })
   }
 
-  // Upload directement dans le dossier racine avec prefixe invite_
   const prefixedName = `invite_${Date.now()}_${file.name}`
-  const uploadForm = new FormData()
-  uploadForm.append('file', file, prefixedName)
+  const folderId = event.pcloud_folder_id
+  const buffer = await file.arrayBuffer()
 
-  const uploadRes = await fetch(
-    `${PCLOUD_API}/uploadfile?auth=${token}&folderid=${event.pcloud_folder_id}&filename=${encodeURIComponent(prefixedName)}`,
-    { method: 'POST', body: uploadForm }
-  )
-  const uploadData = await uploadRes.json()
+  console.log('[UPLOAD DEBUG] slug:', slug, '| folderid:', folderId, '| filename:', prefixedName, '| fileSize:', file.size, '| fileType:', file.type)
 
-  if (uploadData.result !== 0) {
-    return NextResponse.json({ error: uploadData.error || 'Erreur upload' }, { status: 502 })
+  try {
+    const uploadForm = new FormData()
+    uploadForm.append('auth', token)
+    uploadForm.append('folderid', String(folderId))
+    uploadForm.append('filename', prefixedName)
+    uploadForm.append('file', new Blob([buffer], { type: file.type }), file.name)
+
+    const uploadRes = await fetch(`${PCLOUD_API}/uploadfile`, {
+      method: 'POST',
+      body: uploadForm,
+    })
+    const uploadData = await uploadRes.json()
+
+    console.log('[UPLOAD PCLOUD RESPONSE]', JSON.stringify(uploadData))
+
+    if (uploadData.result !== 0) {
+      console.error('[UPLOAD ERROR] pCloud result:', uploadData.result, '| error:', uploadData.error)
+      return NextResponse.json({ error: 'pCloud upload failed', details: uploadData }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, fileId: uploadData.metadata[0].fileid })
+  } catch (err) {
+    console.error('[UPLOAD ERROR] exception:', err)
+    return NextResponse.json({ error: 'Erreur upload inattendue' }, { status: 500 })
   }
-
-  const fileId = uploadData.metadata?.[0]?.fileid
-
-  return NextResponse.json({ success: true, fileId })
 }

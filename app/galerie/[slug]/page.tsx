@@ -19,14 +19,17 @@ export default async function GalleryPage({
     .eq('slug', slug)
     .single()
 
-  if (!event || !event.is_active) notFound()
+  // Supprimer le cookie de session si la galerie n'existe plus ou est inactive
+  if (!event || !event.is_active) {
+    const cookieStore = await cookies()
+    cookieStore.delete(`gallery_${slug}`)
+    notFound()
+  }
 
   if (event.expires_at && new Date(event.expires_at) < new Date()) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)' }}>
-        <p style={{ fontStyle: 'italic', color: 'var(--brown-muted)' }}>Cette galerie a expiré.</p>
-      </div>
-    )
+    const cookieStore = await cookies()
+    cookieStore.delete(`gallery_${slug}`)
+    notFound()
   }
 
   // Vérifier si l'utilisateur est déjà authentifié

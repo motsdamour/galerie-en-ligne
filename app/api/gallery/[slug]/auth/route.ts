@@ -17,15 +17,21 @@ export async function POST(
     .single()
 
   if (error || !event) {
-    return NextResponse.json({ error: 'Galerie introuvable' }, { status: 404 })
+    const res = NextResponse.json({ error: 'Galerie introuvable' }, { status: 404 })
+    res.cookies.delete(`gallery_${slug}`)
+    return res
   }
 
   if (!event.is_active) {
-    return NextResponse.json({ error: 'Cette galerie est désactivée' }, { status: 403 })
+    const res = NextResponse.json({ error: 'Cette galerie est désactivée' }, { status: 403 })
+    res.cookies.delete(`gallery_${slug}`)
+    return res
   }
 
   if (event.expires_at && new Date(event.expires_at) < new Date()) {
-    return NextResponse.json({ error: 'Cette galerie a expiré' }, { status: 403 })
+    const res = NextResponse.json({ error: 'Cette galerie a expiré' }, { status: 403 })
+    res.cookies.delete(`gallery_${slug}`)
+    return res
   }
 
   const valid = await verifyPassword(password, event.password_hash)
