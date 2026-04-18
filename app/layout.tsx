@@ -30,8 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer />
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              registrations.forEach(function(r) { r.unregister() })
             })
           }
           window.OneSignalDeferred = window.OneSignalDeferred || [];
