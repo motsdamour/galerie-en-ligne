@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 export default function TestUpload() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [log, setLog] = useState<string[]>([])
+  const [slug, setSlug] = useState('charles-marine-19-juillet-2026')
 
   const addLog = (msg: string) => setLog(prev => [...prev, msg])
 
@@ -23,10 +24,11 @@ export default function TestUpload() {
     const formData = new FormData()
     formData.append('file', file)
 
-    addLog('Envoi vers /api/gallery/charles-marine-19-juillet-2026/upload...')
+    const url = `/api/gallery/${slug}/upload`
+    addLog(`Envoi vers ${url}...`)
 
     try {
-      const res = await fetch('/api/gallery/charles-marine-19-juillet-2026/upload', {
+      const res = await fetch(url, {
         method: 'POST',
         body: formData,
       })
@@ -40,6 +42,15 @@ export default function TestUpload() {
   return (
     <div style={{ padding: 40, fontFamily: 'monospace' }}>
       <h1>Test Upload</h1>
+      <div style={{ marginBottom: 20 }}>
+        <label>Slug : </label>
+        <input
+          type="text"
+          value={slug}
+          onChange={e => setSlug(e.target.value)}
+          style={{ padding: '6px 10px', width: 400, border: '1px solid #ccc', borderRadius: 4 }}
+        />
+      </div>
       <button onClick={handleClick} style={{ padding: '10px 20px', marginBottom: 20 }}>
         Choisir un fichier
       </button>
