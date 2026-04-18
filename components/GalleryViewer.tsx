@@ -143,30 +143,28 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       .finally(() => setLoading(false))
   }, [slug, editToken])
 
-  async function hideFile(fileId: number) {
-    const res = await fetch(`/api/gallery/${slug}/hide`, {
+  function hideFile(fileId: number) {
+    setHiddenIds(prev => new Set([...prev, fileId]))
+    setFolders(prev => prev.map(f => ({ ...f, videos: f.videos.map(v => v.id === fileId ? { ...v, hidden: true } : v) })))
+    setGuestMedia(prev => prev.map(v => v.id === fileId ? { ...v, hidden: true } : v))
+    setTotalVideos(n => n - 1)
+    fetch(`/api/gallery/${slug}/hide`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fileId, edit_token: editToken }),
     })
-    if (res.ok) {
-      setHiddenIds(prev => new Set([...prev, fileId]))
-      setFolders(prev => prev.map(f => ({ ...f, videos: f.videos.map(v => v.id === fileId ? { ...v, hidden: true } : v) })))
-      setTotalVideos(n => n - 1)
-    }
   }
 
-  async function unhideFile(fileId: number) {
-    const res = await fetch(`/api/gallery/${slug}/unhide`, {
+  function unhideFile(fileId: number) {
+    setHiddenIds(prev => { const s = new Set(prev); s.delete(fileId); return s })
+    setFolders(prev => prev.map(f => ({ ...f, videos: f.videos.map(v => v.id === fileId ? { ...v, hidden: false } : v) })))
+    setGuestMedia(prev => prev.map(v => v.id === fileId ? { ...v, hidden: false } : v))
+    setTotalVideos(n => n + 1)
+    fetch(`/api/gallery/${slug}/unhide`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fileId, edit_token: editToken }),
     })
-    if (res.ok) {
-      setHiddenIds(prev => { const s = new Set(prev); s.delete(fileId); return s })
-      setFolders(prev => prev.map(f => ({ ...f, videos: f.videos.map(v => v.id === fileId ? { ...v, hidden: false } : v) })))
-      setTotalVideos(n => n + 1)
-    }
   }
 
   async function handleUpload(files: FileList) {
@@ -486,8 +484,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       {/* Grid */}
       {!showGuestTab ? (
         <div className={isPhotosTab ? 'gallery-grid-photo gallery-content' : 'gallery-grid-video gallery-content'}>
-          {currentItems.filter(item => !hiddenIds.has(item.id)).map((item) => {
-            const isHidden = item.hidden || false
+          {(isEditor ? currentItems : currentItems.filter(item => !hiddenIds.has(item.id) && !item.hidden)).map((item) => {
+            const isHidden = item.hidden || hiddenIds.has(item.id)
             const isPhoto = isPhotosTab || item.type === 'image'
             if (!isPhoto) return <VideoCard key={item.id} item={item} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
             const photoIdx = photoItems.findIndex(p => p.id === item.id)
@@ -530,14 +528,14 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
           {/* Guest media grid */}
           {(() => {
-            const visibleGuest = guestMedia.filter(p => !hiddenIds.has(p.id))
-            const guestPhotoItems = visibleGuest.filter(p => p.type === 'image')
-            const hasVideos = visibleGuest.some(p => p.type === 'video')
+            const displayGuest = isEditor ? guestMedia : guestMedia.filter(p => !hiddenIds.has(p.id) && !p.hidden)
+            const guestPhotoItems = displayGuest.filter(p => p.type === 'image')
+            const hasVideos = displayGuest.some(p => p.type === 'video')
             return (
               <>
                 <div className={hasVideos ? 'gallery-grid-video' : 'gallery-grid-photo'}>
-                  {visibleGuest.map(item => {
-                    const isHidden = item.hidden || false
+                  {displayGuest.map(item => {
+                    const isHidden = item.hidden || hiddenIds.has(item.id)
                     if (item.type === 'video') {
                       return <VideoCard key={item.id} item={item} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
                     }
@@ -545,7 +543,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                     return <PhotoCard key={item.id} item={item} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
                   })}
                 </div>
-                {visibleGuest.length === 0 && !uploading && (
+                {displayGuest.length === 0 && !uploading && (
                   <p style={{ textAlign: 'center', fontSize: '13px', color: t.muted, fontFamily: "'Poppins', sans-serif", marginTop: '20px' }}>
                     Aucun media pour l'instant. Soyez le premier a partager vos souvenirs !
                   </p>
