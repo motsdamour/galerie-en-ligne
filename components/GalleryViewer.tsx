@@ -106,6 +106,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [toast, setToast] = useState<string | null>(null)
   const navDropRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const t = dark ? DARK : LIGHT
 
@@ -201,8 +202,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       setTimeout(() => setUploadSuccess(false), 4000)
     }
     // Reset input pour permettre re-upload du même fichier
-    const input = document.getElementById('guest-upload') as HTMLInputElement
-    if (input) input.value = ''
+    if (fileInputRef.current) fileInputRef.current.value = ''
     // Recharger les photos invites
     const url = editToken
       ? `/api/gallery/${slug}/videos?edit_token=${editToken}`
@@ -520,10 +520,10 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           {/* Upload zone */}
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*,video/*"
               multiple
-              id="guest-upload"
               style={{ display: 'none' }}
               onChange={e => {
                 const files = e.target.files
@@ -531,21 +531,25 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 if (files && files.length > 0) handleUpload(files)
               }}
             />
-            <label
-              htmlFor="guest-upload"
+            <button
+              type="button"
+              onClick={() => {
+                console.log('[UPLOAD BUTTON] clicked, uploading:', uploading)
+                if (!uploading) fileInputRef.current?.click()
+              }}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 background: '#e97872', color: 'white', padding: '12px 28px',
                 borderRadius: '25px', fontSize: '12px', fontFamily: "'Poppins', sans-serif",
                 letterSpacing: '0.06em', textTransform: 'uppercase', cursor: uploading ? 'default' : 'pointer',
-                opacity: uploading ? 0.6 : 1,
+                opacity: uploading ? 0.6 : 1, border: 'none',
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
               {uploading ? `${uploadProgress.done}/${uploadProgress.total}...` : 'Ajouter photos & videos'}
-            </label>
+            </button>
             {uploadSuccess && (
               <p style={{ fontSize: '13px', color: '#0f6e56', fontFamily: "'Poppins', sans-serif", marginTop: '12px' }}>
                 Photos ajoutees avec succes !
