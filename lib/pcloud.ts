@@ -66,11 +66,12 @@ export async function listVideosByFolder(rootFolderId: string): Promise<PCloudFo
 
   const contents = data.metadata?.contents ?? []
   const subfolders = contents.filter((c: any) => c.isfolder)
+  const rootFiles = contents.filter((c: any) => !c.isfolder)
+  const rootMedia = flattenMedia(rootFiles)
 
   if (subfolders.length === 0) {
-    const videos = flattenMedia(contents)
-    return videos.length > 0
-      ? [{ name: 'Vidéos', folderid: Number(rootFolderId), videos }]
+    return rootMedia.length > 0
+      ? [{ name: 'Vidéos', folderid: Number(rootFolderId), videos: rootMedia }]
       : []
   }
 
@@ -81,7 +82,14 @@ export async function listVideosByFolder(rootFolderId: string): Promise<PCloudFo
     })
   )
 
-  return results.filter(f => f.videos.length > 0)
+  const filtered = results.filter(f => f.videos.length > 0)
+
+  // Ajouter les fichiers racine (invite_* etc.) comme un dossier virtuel
+  if (rootMedia.length > 0) {
+    filtered.push({ name: '_root', folderid: Number(rootFolderId), videos: rootMedia })
+  }
+
+  return filtered
 }
 
 // Génère un lien de téléchargement temporaire (24h)

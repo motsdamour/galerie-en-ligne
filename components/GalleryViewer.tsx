@@ -521,34 +521,6 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             />
             <button
               type="button"
-              onClick={async () => {
-                const input = document.createElement('input')
-                input.type = 'file'
-                input.accept = 'image/*'
-                input.onchange = async (ev) => {
-                  const file = (ev.target as HTMLInputElement).files?.[0]
-                  if (!file) return
-                  const formData = new FormData()
-                  formData.append('file', file)
-                  const res = await fetch(`/api/gallery/${slug}/upload`, {
-                    method: 'POST',
-                    body: formData
-                  })
-                  const data = await res.json()
-                  alert(JSON.stringify(data))
-                }
-                input.click()
-              }}
-              style={{
-                display: 'inline-block', padding: '10px 20px', marginBottom: '10px',
-                background: '#333', color: 'white', border: 'none', borderRadius: '8px',
-                fontSize: '13px', cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
-              }}
-            >
-              DEBUG UPLOAD
-            </button>
-            <button
-              type="button"
               onClick={() => {
                 if (!uploading) fileInputRef.current?.click()
               }}

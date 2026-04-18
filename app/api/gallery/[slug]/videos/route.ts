@@ -52,10 +52,19 @@ export async function GET(
 
     const foldersClean = foldersWithUrls
       .map(f => {
-        // Le sous-dossier photos-invites → tout va dans guestPhotos
+        // Le sous-dossier photos-invites ou _root → extraire les invite_*
         const norm = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
         if (norm === 'photos-invites') {
           guestPhotos.push(...f.videos)
+          return { ...f, videos: [] }
+        }
+        if (f.name === '_root') {
+          // Fichiers racine : invite_* → guestPhotos, le reste → ignorer
+          f.videos.forEach((v: any) => {
+            if (v.name.startsWith('invite_')) {
+              guestPhotos.push({ ...v, name: v.name.replace(/^invite_\d+_/, '') })
+            }
+          })
           return { ...f, videos: [] }
         }
         // Fichiers prefixes invite_ → guestPhotos
