@@ -168,31 +168,41 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   }
 
   async function handleUpload(files: FileList) {
+    console.log('[handleUpload] called, files.length:', files.length, 'slug:', slug)
+    if (files.length === 0) {
+      console.warn('[handleUpload] FileList is empty, aborting')
+      return
+    }
     setUploading(true)
     setUploadProgress({ done: 0, total: files.length })
     setUploadSuccess(false)
+    let successCount = 0
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      console.log('Upload démarré', file.name, file.size, file.type)
-      console.log('URL:', `/api/gallery/${slug}/upload`)
+      console.log(`[handleUpload] file ${i + 1}/${files.length}:`, file.name, file.size, file.type)
+      console.log(`[handleUpload] URL: /api/gallery/${slug}/upload`)
       const form = new FormData()
       form.append('file', file)
       try {
         const res = await fetch(`/api/gallery/${slug}/upload`, { method: 'POST', body: form })
         const data = await res.json()
-        console.log('Upload response:', res.status, data)
-        if (!res.ok) console.error('Upload failed:', data)
+        console.log('[handleUpload] response:', res.status, data)
+        if (res.ok) successCount++
+        else console.error('[handleUpload] upload failed:', data)
       } catch (err) {
-        console.error('Upload fetch error:', err)
+        console.error('[handleUpload] fetch error:', err)
       }
       setUploadProgress({ done: i + 1, total: files.length })
     }
     setUploading(false)
-    setUploadSuccess(true)
+    console.log(`[handleUpload] done, ${successCount}/${files.length} succeeded`)
+    if (successCount > 0) {
+      setUploadSuccess(true)
+      setTimeout(() => setUploadSuccess(false), 4000)
+    }
     // Reset input pour permettre re-upload du même fichier
     const input = document.getElementById('guest-upload') as HTMLInputElement
     if (input) input.value = ''
-    setTimeout(() => setUploadSuccess(false), 4000)
     // Recharger les photos invites
     const url = editToken
       ? `/api/gallery/${slug}/videos?edit_token=${editToken}`
@@ -515,7 +525,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               multiple
               id="guest-upload"
               style={{ display: 'none' }}
-              onChange={e => e.target.files && e.target.files.length > 0 && handleUpload(e.target.files)}
+              onChange={e => {
+                const files = e.target.files
+                console.log('[INPUT onChange] files:', files?.length)
+                if (files && files.length > 0) handleUpload(files)
+              }}
             />
             <label
               htmlFor="guest-upload"
