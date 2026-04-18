@@ -97,6 +97,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
   const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [dark, setDark] = useState(false)
   const [navDropOpen, setNavDropOpen] = useState(false)
   const [zipKey, setZipKey] = useState<string | null>(null)
@@ -106,7 +107,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [toast, setToast] = useState<string | null>(null)
   const navDropRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+
 
   const t = dark ? DARK : LIGHT
 
@@ -168,40 +169,59 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     })
   }
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
+  function triggerUpload() {
+    if (uploading) return
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*,video/*'
+    input.multiple = true
+    input.onchange = async () => {
+      const files = input.files
+      if (!files || files.length === 0) return
 
-    setUploading(true)
-    let successCount = 0
+      setUploading(true)
+      setUploadError(null)
+      setUploadSuccess(false)
+      setUploadProgress({ done: 0, total: files.length })
+      let successCount = 0
+      let lastError = ''
 
-    for (const file of Array.from(files)) {
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
+      for (const file of Array.from(files)) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
 
-        const res = await fetch(`/api/gallery/${slug}/upload`, {
-          method: 'POST',
-          body: formData
-        })
+          const res = await fetch(`/api/gallery/${slug}/upload`, {
+            method: 'POST',
+            body: formData
+          })
 
-        const data = await res.json()
-        console.log('[UPLOAD]', file.name, res.status, data)
+          const data = await res.json()
+          console.log('[UPLOAD]', file.name, res.status, data)
 
-        if (res.ok && data.success) successCount++
-      } catch (err) {
-        console.error('[UPLOAD ERROR]', err)
+          if (res.ok && data.success) {
+            successCount++
+          } else {
+            lastError = data.error || 'Erreur upload'
+          }
+        } catch (err) {
+          console.error('[UPLOAD ERROR]', err)
+          lastError = 'Erreur réseau'
+        }
+        setUploadProgress(prev => ({ ...prev, done: prev.done + 1 }))
+      }
+
+      setUploading(false)
+      if (successCount > 0) {
+        setUploadSuccess(true)
+        setTimeout(() => window.location.reload(), 1500)
+      }
+      if (lastError && successCount < files.length) {
+        setUploadError(lastError)
+        setTimeout(() => setUploadError(null), 6000)
       }
     }
-
-    setUploading(false)
-    if (successCount > 0) {
-      setUploadSuccess(true)
-      // Recharger les médias invités
-      setTimeout(() => window.location.reload(), 1500)
-    }
-
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    input.click()
   }
 
   useEffect(() => {
@@ -511,19 +531,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         <div className="gallery-content" style={{ padding: '20px' }}>
           {/* Upload zone */}
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              style={{ display: 'none' }}
-              onChange={handleUpload}
-            />
             <button
               type="button"
-              onClick={() => {
-                if (!uploading) fileInputRef.current?.click()
-              }}
+              onClick={triggerUpload}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 background: '#e97872', color: 'white', padding: '12px 28px',
@@ -540,6 +550,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             {uploadSuccess && (
               <p style={{ fontSize: '13px', color: '#0f6e56', fontFamily: "'Poppins', sans-serif", marginTop: '12px' }}>
                 Photos ajoutees avec succes !
+              </p>
+            )}
+            {uploadError && (
+              <p style={{ fontSize: '13px', color: '#c0524c', fontFamily: "'Poppins', sans-serif", marginTop: '12px' }}>
+                {uploadError}
               </p>
             )}
           </div>
