@@ -91,7 +91,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [error, setError] = useState('')
   const [isEditor, setIsEditor] = useState(false)
   const [hiddenIds, setHiddenIds] = useState<Set<number>>(new Set())
-  const [guestPhotos, setGuestPhotos] = useState<MediaFile[]>([])
+  const [guestMedia, setGuestMedia] = useState<MediaFile[]>([])
   const [activeTab, setActiveTab] = useState(0)
   const [showGuestTab, setShowGuestTab] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -118,9 +118,25 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       .then(data => {
         if (data.error) { setError(data.error); return }
         setEvent(data.event)
-        setFolders(data.folders ?? [])
+        const tabOrder: Record<string, number> = { 'Boîte à questions': 0, "Livre d'or": 1, 'Photos': 2 }
+        const rawFolders: Folder[] = data.folders ?? []
+        const guestFromFolders: MediaFile[] = []
+        const filteredFolders = rawFolders.filter(f => {
+          const norm = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+          if (norm === 'photos-invites') {
+            guestFromFolders.push(...f.videos)
+            return false
+          }
+          return true
+        })
+        filteredFolders.sort((a, b) => {
+          const oa = tabOrder[tabLabel(a.name)] ?? 99
+          const ob = tabOrder[tabLabel(b.name)] ?? 99
+          return oa - ob
+        })
+        setFolders(filteredFolders)
         setTotalVideos(data.totalVideos ?? 0)
-        setGuestPhotos(data.guestPhotos ?? [])
+        setGuestMedia([...guestFromFolders, ...(data.guestPhotos ?? [])])
         if (data.isEditor) setIsEditor(true)
       })
       .catch(() => setError('Erreur de chargement'))
@@ -172,7 +188,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       : `/api/gallery/${slug}/videos`
     const res = await fetch(url)
     const data = await res.json()
-    if (data.guestPhotos) setGuestPhotos(data.guestPhotos)
+    if (data.guestPhotos) setGuestMedia(data.guestPhotos)
   }
 
   useEffect(() => {
@@ -188,7 +204,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const currentItems = currentFolder?.videos ?? []
   const isPhotosTab = currentFolder ? tabLabel(currentFolder.name) === 'Photos' : false
   const photoItems = showGuestTab
-    ? guestPhotos.filter(item => item.type === 'image' && !hiddenIds.has(item.id))
+    ? guestMedia.filter(item => item.type === 'image' && !hiddenIds.has(item.id))
     : currentItems.filter(item => isPhotosTab || item.type === 'image')
 
   useEffect(() => {
@@ -460,8 +476,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 whiteSpace: 'nowrap',
               }}
             >
-              Photos & videos invites
-              <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({guestPhotos.filter(p => !hiddenIds.has(p.id)).length})</span>
+              Photos & vidéos invités
+              <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({guestMedia.filter(p => !hiddenIds.has(p.id)).length})</span>
             </button>
           </div>
         )}
@@ -514,7 +530,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
           {/* Guest media grid */}
           {(() => {
-            const visibleGuest = guestPhotos.filter(p => !hiddenIds.has(p.id))
+            const visibleGuest = guestMedia.filter(p => !hiddenIds.has(p.id))
             const guestPhotoItems = visibleGuest.filter(p => p.type === 'image')
             const hasVideos = visibleGuest.some(p => p.type === 'video')
             return (

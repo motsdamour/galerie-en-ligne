@@ -53,7 +53,8 @@ export async function GET(
     const foldersClean = foldersWithUrls
       .map(f => {
         // Le sous-dossier photos-invites → tout va dans guestPhotos
-        if (f.name.toLowerCase() === 'photos-invites') {
+        const norm = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        if (norm === 'photos-invites') {
           guestPhotos.push(...f.videos)
           return { ...f, videos: [] }
         }
