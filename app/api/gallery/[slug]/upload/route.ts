@@ -1,16 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isAuthorized } from '@/lib/auth'
 
-const PCLOUD_API = 'https://eapi.pcloud.com'
 const MAX_SIZE = 200 * 1024 * 1024 // 200MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm']
 
 export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  request: Request,
+  context: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await params
+  const { slug } = await context.params
 
   const authorized = await isAuthorized(slug)
   if (!authorized) {
@@ -30,14 +29,14 @@ export async function POST(
     .single()
 
   if (!event) {
-    return NextResponse.json({ error: 'Evenement introuvable' }, { status: 404 })
+    return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  const formData = await req.formData()
-  const file = formData.get('file') as File | null
+  const formData = await request.formData()
+  const file = formData.get('file') as File
 
   if (!file) {
-    return NextResponse.json({ error: 'Aucun fichier' }, { status: 400 })
+    return NextResponse.json({ error: 'No file' }, { status: 400 })
   }
 
   if (file.size > MAX_SIZE) {
@@ -50,35 +49,28 @@ export async function POST(
     return NextResponse.json({ error: 'Format non supporte (jpg, png, heic, webp, mp4, mov, webm)' }, { status: 400 })
   }
 
-  const prefixedName = `invite_${Date.now()}_${file.name}`
-  const folderId = event.pcloud_folder_id
-  const buffer = await file.arrayBuffer()
+  console.log('[UPLOAD] file name:', file.name, 'size:', file.size, 'type:', file.type)
+  console.log('[UPLOAD] folderid:', event.pcloud_folder_id)
 
-  console.log('[UPLOAD DEBUG] slug:', slug, '| folderid:', folderId, '| filename:', prefixedName, '| fileSize:', file.size, '| fileType:', file.type)
+  const buffer = Buffer.from(await file.arrayBuffer())
 
-  try {
-    const uploadForm = new FormData()
-    uploadForm.append('auth', token)
-    uploadForm.append('folderid', String(folderId))
-    uploadForm.append('filename', prefixedName)
-    uploadForm.append('file', new Blob([buffer], { type: file.type }), file.name)
+  const pcloudForm = new FormData()
+  pcloudForm.append('auth', token)
+  pcloudForm.append('folderid', event.pcloud_folder_id)
+  pcloudForm.append('filename', `invite_${Date.now()}_${file.name}`)
+  pcloudForm.append('file', new Blob([buffer], { type: file.type }), file.name)
 
-    const uploadRes = await fetch(`${PCLOUD_API}/uploadfile`, {
-      method: 'POST',
-      body: uploadForm,
-    })
-    const uploadData = await uploadRes.json()
+  const uploadRes = await fetch('https://eapi.pcloud.com/uploadfile', {
+    method: 'POST',
+    body: pcloudForm,
+  })
 
-    console.log('[UPLOAD PCLOUD RESPONSE]', JSON.stringify(uploadData))
+  const uploadData = await uploadRes.json()
+  console.log('[UPLOAD PCLOUD RESPONSE]', JSON.stringify(uploadData))
 
-    if (uploadData.result !== 0) {
-      console.error('[UPLOAD ERROR] pCloud result:', uploadData.result, '| error:', uploadData.error)
-      return NextResponse.json({ error: 'pCloud upload failed', details: uploadData }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, fileId: uploadData.metadata[0].fileid })
-  } catch (err) {
-    console.error('[UPLOAD ERROR] exception:', err)
-    return NextResponse.json({ error: 'Erreur upload inattendue' }, { status: 500 })
+  if (uploadData.result !== 0) {
+    return NextResponse.json({ error: 'pCloud upload failed', details: uploadData }, { status: 500 })
   }
+
+  return NextResponse.json({ success: true, fileId: uploadData.metadata[0].fileid })
 }
