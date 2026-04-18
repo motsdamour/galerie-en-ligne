@@ -168,48 +168,40 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     })
   }
 
-  async function handleUpload(files: FileList) {
-    console.log('[handleUpload] called, files.length:', files.length, 'slug:', slug)
-    if (files.length === 0) {
-      console.warn('[handleUpload] FileList is empty, aborting')
-      return
-    }
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
     setUploading(true)
-    setUploadProgress({ done: 0, total: files.length })
-    setUploadSuccess(false)
     let successCount = 0
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      console.log(`[handleUpload] file ${i + 1}/${files.length}:`, file.name, file.size, file.type)
-      console.log(`[handleUpload] URL: /api/gallery/${slug}/upload`)
-      const form = new FormData()
-      form.append('file', file)
+
+    for (const file of Array.from(files)) {
       try {
-        const res = await fetch(`/api/gallery/${slug}/upload`, { method: 'POST', body: form })
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const res = await fetch(`/api/gallery/${slug}/upload`, {
+          method: 'POST',
+          body: formData
+        })
+
         const data = await res.json()
-        console.log('[handleUpload] response:', res.status, data)
-        if (res.ok) successCount++
-        else console.error('[handleUpload] upload failed:', data)
+        console.log('[UPLOAD]', file.name, res.status, data)
+
+        if (res.ok && data.success) successCount++
       } catch (err) {
-        console.error('[handleUpload] fetch error:', err)
+        console.error('[UPLOAD ERROR]', err)
       }
-      setUploadProgress({ done: i + 1, total: files.length })
     }
+
     setUploading(false)
-    console.log(`[handleUpload] done, ${successCount}/${files.length} succeeded`)
     if (successCount > 0) {
       setUploadSuccess(true)
-      setTimeout(() => setUploadSuccess(false), 4000)
+      // Recharger les médias invités
+      setTimeout(() => window.location.reload(), 1500)
     }
-    // Reset input pour permettre re-upload du même fichier
+
     if (fileInputRef.current) fileInputRef.current.value = ''
-    // Recharger les photos invites
-    const url = editToken
-      ? `/api/gallery/${slug}/videos?edit_token=${editToken}`
-      : `/api/gallery/${slug}/videos`
-    const res = await fetch(url)
-    const data = await res.json()
-    if (data.guestPhotos) setGuestMedia(data.guestPhotos)
   }
 
   useEffect(() => {
@@ -525,11 +517,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               accept="image/*,video/*"
               multiple
               style={{ display: 'none' }}
-              onChange={e => {
-                const files = e.target.files
-                console.log('[INPUT onChange] files:', files?.length)
-                if (files && files.length > 0) handleUpload(files)
-              }}
+              onChange={handleUpload}
             />
             <button
               type="button"
