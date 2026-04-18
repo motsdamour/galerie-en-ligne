@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword, verifyAdminToken } from '@/lib/auth'
 import { sendNewGalleryEmail } from '@/lib/email'
+import { sendNotification } from '@/lib/onesignal'
 
 function generateSlug(coupleName: string, date: string) {
   const names = coupleName
@@ -71,6 +72,13 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('Email error:', err)
   }
+
+  const galleryUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/galerie/${slug}`
+  await sendNotification(
+    'Nouvelle galerie creee !',
+    `La galerie de ${coupleName} est en ligne`,
+    galleryUrl
+  )
 
   return NextResponse.json({
     id: data.id,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword } from '@/lib/auth'
 import { sendNewGalleryEmail } from '@/lib/email'
+import { sendNotification } from '@/lib/onesignal'
 
 const PCLOUD_API = 'https://eapi.pcloud.com'
 
@@ -121,6 +122,12 @@ export async function GET(req: NextRequest) {
     } catch (err) {
       console.error('Email error:', err)
     }
+
+    await sendNotification(
+      'Nouvelle galerie creee !',
+      `La galerie de ${coupleName} est en ligne`,
+      `${process.env.NEXT_PUBLIC_SITE_URL}/galerie/${slug}`
+    )
   }
 
   return NextResponse.json({ created, skipped })
