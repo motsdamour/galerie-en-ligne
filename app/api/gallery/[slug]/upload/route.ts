@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { isAuthorized } from '@/lib/auth'
 
 const PCLOUD_API = 'https://eapi.pcloud.com'
 const MAX_SIZE = 200 * 1024 * 1024 // 200MB
@@ -12,11 +11,6 @@ export async function POST(
 ) {
   const { slug } = await params
 
-  const authorized = await isAuthorized(slug)
-  if (!authorized) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
-  }
-
   const token = process.env.PCLOUD_AUTH_TOKEN
   if (!token) {
     return NextResponse.json({ error: 'Token manquant' }, { status: 500 })
@@ -25,13 +19,21 @@ export async function POST(
   const db = supabaseAdmin()
   const { data: event } = await db
     .from('events')
-    .select('pcloud_folder_id')
+    .select('pcloud_folder_id, is_active, expires_at')
     .eq('slug', slug)
+    .eq('is_active', true)
     .single()
 
   if (!event) {
-    return NextResponse.json({ error: 'Evenement introuvable' }, { status: 404 })
+    return NextResponse.json({ error: 'Galerie introuvable' }, { status: 404 })
   }
+
+  // Vérifier expiration
+  if (event.expires_at && new Date(event.expires_at) < new Date()) {
+    return NextResponse.json({ error: 'Galerie expirée' }, { status: 403 })
+  }
+
+  // Pas de vérification de session — upload ouvert à tous les visiteurs de la galerie
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null

@@ -29,7 +29,6 @@ export default function TestUpload() {
       const res = await fetch('/api/gallery/charles-marine-19-juillet-2026/upload', {
         method: 'POST',
         body: formData,
-        credentials: 'include'
       })
       const data = await res.json()
       addLog(`Réponse: ${res.status} - ${JSON.stringify(data)}`)
