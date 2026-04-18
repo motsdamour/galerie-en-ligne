@@ -172,13 +172,26 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     setUploadProgress({ done: 0, total: files.length })
     setUploadSuccess(false)
     for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      console.log('Upload démarré', file.name, file.size, file.type)
+      console.log('URL:', `/api/gallery/${slug}/upload`)
       const form = new FormData()
-      form.append('file', files[i])
-      await fetch(`/api/gallery/${slug}/upload`, { method: 'POST', body: form })
+      form.append('file', file)
+      try {
+        const res = await fetch(`/api/gallery/${slug}/upload`, { method: 'POST', body: form })
+        const data = await res.json()
+        console.log('Upload response:', res.status, data)
+        if (!res.ok) console.error('Upload failed:', data)
+      } catch (err) {
+        console.error('Upload fetch error:', err)
+      }
       setUploadProgress({ done: i + 1, total: files.length })
     }
     setUploading(false)
     setUploadSuccess(true)
+    // Reset input pour permettre re-upload du même fichier
+    const input = document.getElementById('guest-upload') as HTMLInputElement
+    if (input) input.value = ''
     setTimeout(() => setUploadSuccess(false), 4000)
     // Recharger les photos invites
     const url = editToken
