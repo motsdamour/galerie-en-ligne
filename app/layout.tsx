@@ -26,6 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr">
       <head>
         <meta name="theme-color" content="#e97872" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;700&display=swap" rel="stylesheet" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer />
         <script dangerouslySetInnerHTML={{ __html: `

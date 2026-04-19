@@ -292,8 +292,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           style={{
             display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left',
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: '10px 14px', borderRadius: '6px', fontSize: '12px',
-            fontFamily: "'Poppins', sans-serif", letterSpacing: '0.03em',
+            padding: '10px 14px', borderRadius: '6px', fontSize: '16px', fontWeight: 300,
+            lineHeight: '20px', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.03em',
             color: t.text, minHeight: '44px',
           }}
           onMouseEnter={e => (e.currentTarget.style.background = dark ? '#2a2a2a' : '#fdf3f2')}
@@ -347,7 +347,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ width: '32px', height: '32px', border: '1px solid #e97872', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }}/>
-        <p style={{ fontSize: '13px', color: '#888780', fontFamily: 'Poppins, sans-serif' }}>Chargement de vos souvenirs…</p>
+        <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#888780', fontFamily: 'Poppins, sans-serif' }}>Chargement de vos souvenirs…</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -355,7 +355,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
   if (error) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-      <p style={{ color: '#888780', fontFamily: 'Poppins, sans-serif' }}>{error}</p>
+      <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#888780', fontFamily: 'Poppins, sans-serif' }}>{error}</p>
     </div>
   )
 
@@ -382,8 +382,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 disabled={!!zipKey}
                 style={{
                   background: '#e97872', color: 'white', border: 'none',
-                  padding: '8px 16px', borderRadius: '20px', fontSize: '11px',
-                  letterSpacing: '0.05em', textTransform: 'uppercase', cursor: zipKey ? 'default' : 'pointer',
+                  padding: '8px 16px', borderRadius: '20px', fontSize: '16px', fontWeight: 300,
+                  lineHeight: '20px', letterSpacing: '0.05em', textTransform: 'uppercase', cursor: zipKey ? 'default' : 'pointer',
                   fontFamily: "'Poppins', sans-serif", opacity: zipKey ? 0.7 : 1,
                   minHeight: '36px', whiteSpace: 'nowrap',
                 }}
@@ -427,13 +427,13 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       </nav>
 
       {/* Site name */}
-      <p style={{ textAlign: 'center', fontSize: '10px', color: dark ? '#666' : '#999', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.1em', textTransform: 'uppercase', margin: '12px 0 0' }}>
+      <p style={{ textAlign: 'center', fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: dark ? '#666' : '#999', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.1em', textTransform: 'uppercase', margin: '12px 0 0' }}>
         mots-damour.fr
       </p>
 
       {/* Edit mode badge */}
       {isEditor && (
-        <div style={{ background: '#e97872', color: 'white', textAlign: 'center', padding: '8px', fontSize: '11px', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <div style={{ background: '#e97872', color: 'white', textAlign: 'center', padding: '8px', fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           Mode edition — cliquez sur le bouton masquer pour retirer un media
         </div>
       )}
@@ -446,21 +446,22 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               {event.coupleName}
             </h1>
             {event.expiresAt && (
-              <p style={{ fontSize: '11px', color: dark ? '#888888' : '#b4b2a9', fontFamily: "'Poppins', sans-serif", margin: '0 0 10px' }}>
+              <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: dark ? '#888888' : '#b4b2a9', fontFamily: "'Poppins', sans-serif", margin: '0 0 10px' }}>
                 Galerie disponible encore {Math.max(0, Math.ceil((new Date(event.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} jours
               </p>
             )}
           </>
         )}
-        <p style={{ fontSize: '10px', letterSpacing: '0.18em', color: '#e97872', textTransform: 'uppercase', marginBottom: '10px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', letterSpacing: '0.18em', color: '#e97872', textTransform: 'uppercase', marginBottom: '10px' }}>
           {totalVideos} souvenir{totalVideos > 1 ? 's' : ''} partagé{totalVideos > 1 ? 's' : ''} avec amour
         </p>
         <button
           onClick={() => setShareOpen(true)}
           style={{
-            background: 'white', border: '1px solid #e97872', color: '#e97872', fontWeight: 700,
-            padding: '8px 24px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer',
+            background: 'white', border: '1px solid #e97872', color: '#e97872', fontWeight: 300,
+            padding: '8px 24px', borderRadius: '20px', fontSize: '16px', cursor: 'pointer',
             fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase',
+            lineHeight: '20px',
             marginTop: '12px',
           }}
         >
@@ -486,7 +487,10 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                   background: !showGuestTab && activeTab === i ? '#e97872' : 'transparent',
                   color: !showGuestTab && activeTab === i ? 'white' : t.muted,
                   border: `0.5px solid ${!showGuestTab && activeTab === i ? '#e97872' : t.border}`,
-                  borderRadius: '20px', padding: '8px 20px', fontSize: '12px',
+                  borderRadius: '20px', padding: '8px 20px',
+                  fontSize: !showGuestTab && activeTab === i ? '24px' : '16px',
+                  fontWeight: !showGuestTab && activeTab === i ? 700 : 300,
+                  lineHeight: '20px',
                   fontFamily: "'Poppins', sans-serif", cursor: 'pointer',
                   letterSpacing: '0.04em', transition: 'all 0.15s', minHeight: '44px',
                   whiteSpace: 'nowrap',
@@ -503,7 +507,10 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 background: showGuestTab ? '#e97872' : 'transparent',
                 color: showGuestTab ? 'white' : t.muted,
                 border: `0.5px solid ${showGuestTab ? '#e97872' : t.border}`,
-                borderRadius: '20px', padding: '8px 20px', fontSize: '12px',
+                borderRadius: '20px', padding: '8px 20px',
+                fontSize: showGuestTab ? '24px' : '16px',
+                fontWeight: showGuestTab ? 700 : 300,
+                lineHeight: '20px',
                 fontFamily: "'Poppins', sans-serif", cursor: 'pointer',
                 letterSpacing: '0.04em', transition: 'all 0.15s', minHeight: '44px',
                 whiteSpace: 'nowrap',
@@ -537,7 +544,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 background: '#e97872', color: 'white', padding: '12px 28px',
-                borderRadius: '25px', fontSize: '12px', fontFamily: "'Poppins', sans-serif",
+                borderRadius: '25px', fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: "'Poppins', sans-serif",
                 letterSpacing: '0.06em', textTransform: 'uppercase', cursor: uploading ? 'default' : 'pointer',
                 opacity: uploading ? 0.6 : 1, border: 'none',
               }}
@@ -548,12 +555,12 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               {uploading ? `${uploadProgress.done}/${uploadProgress.total}...` : 'Ajouter photos & videos'}
             </button>
             {uploadSuccess && (
-              <p style={{ fontSize: '13px', color: '#0f6e56', fontFamily: "'Poppins', sans-serif", marginTop: '12px' }}>
+              <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#0f6e56', fontFamily: "'Poppins', sans-serif", marginTop: '12px' }}>
                 Photos ajoutees avec succes !
               </p>
             )}
             {uploadError && (
-              <p style={{ fontSize: '13px', color: '#c0524c', fontFamily: "'Poppins', sans-serif", marginTop: '12px' }}>
+              <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#c0524c', fontFamily: "'Poppins', sans-serif", marginTop: '12px' }}>
                 {uploadError}
               </p>
             )}
@@ -577,7 +584,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                   })}
                 </div>
                 {displayGuest.length === 0 && !uploading && (
-                  <p style={{ textAlign: 'center', fontSize: '13px', color: t.muted, fontFamily: "'Poppins', sans-serif", marginTop: '20px' }}>
+                  <p style={{ textAlign: 'center', fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: t.muted, fontFamily: "'Poppins', sans-serif", marginTop: '20px' }}>
                     Aucun media pour l'instant. Soyez le premier a partager vos souvenirs !
                   </p>
                 )}
@@ -589,9 +596,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
       {/* Footer */}
       <div className="gallery-footer" style={{ borderTop: `0.5px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
-        <a href="https://mots-damour.fr" target="_blank" rel="noopener" style={{ fontSize: '11px', color: t.subtle, textDecoration: 'none', letterSpacing: '0.04em' }}>mots-damour.fr</a>
-        <a href="https://www.instagram.com/motsdamour.fr_/" target="_blank" rel="noopener" style={{ fontSize: '11px', color: t.subtle, textDecoration: 'none', letterSpacing: '0.04em' }}>@motsdamour.fr_</a>
-        <a href="mailto:bonjour@mots-damour.fr" style={{ fontSize: '11px', color: t.subtle, textDecoration: 'none', letterSpacing: '0.04em' }}>bonjour@mots-damour.fr</a>
+        <a href="https://mots-damour.fr" target="_blank" rel="noopener" style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: t.subtle, textDecoration: 'none', letterSpacing: '0.04em' }}>mots-damour.fr</a>
+        <a href="https://www.instagram.com/motsdamour.fr_/" target="_blank" rel="noopener" style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: t.subtle, textDecoration: 'none', letterSpacing: '0.04em' }}>@motsdamour.fr_</a>
+        <a href="mailto:bonjour@mots-damour.fr" style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: t.subtle, textDecoration: 'none', letterSpacing: '0.04em' }}>bonjour@mots-damour.fr</a>
       </div>
 
       {/* Share modal */}
@@ -599,7 +606,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         const galleryLink = `https://galerie.mots-damour.fr/galerie/${slug}`
         const shareBtnStyle: React.CSSProperties = {
           width: '100%', padding: '12px', border: 'none', borderRadius: '12px',
-          fontSize: '12px', fontFamily: "'Poppins', sans-serif", cursor: 'pointer',
+          fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: "'Poppins', sans-serif", cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
           color: 'white', marginBottom: '8px',
         }
@@ -608,7 +615,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             onClick={() => setShareOpen(false)}>
             <div onClick={e => e.stopPropagation()} style={{ background: dark ? '#2a2a2a' : 'white', borderRadius: '16px', padding: '32px', maxWidth: '400px', width: '90%', position: 'relative' }}>
               <button onClick={() => setShareOpen(false)} style={{ position: 'absolute', top: '12px', right: '16px', background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: t.muted }}>x</button>
-              <h3 style={{ fontSize: '14px', fontStyle: 'italic', marginBottom: '20px', color: t.text, fontFamily: "'Poppins', sans-serif" }}>Partager la galerie</h3>
+              <h3 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '20px', color: t.text, fontFamily: "'Poppins', sans-serif" }}>Partager la galerie</h3>
 
               {/* WhatsApp */}
               <a href={`https://wa.me/?text=${encodeURIComponent(`Retrouvez nos souvenirs sur ${galleryLink}`)}`}
@@ -705,8 +712,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             onClick={e => e.stopPropagation()}
             style={{
               marginTop: '16px', background: '#e97872', color: 'white',
-              padding: '10px 28px', borderRadius: '20px', fontSize: '11px',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
+              padding: '10px 28px', borderRadius: '20px', fontSize: '16px', fontWeight: 300,
+              lineHeight: '20px', textTransform: 'uppercase', letterSpacing: '0.06em',
               fontFamily: "'Poppins', sans-serif", textDecoration: 'none',
               minHeight: '44px', display: 'flex', alignItems: 'center',
             }}
@@ -721,7 +728,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         <div style={{
           position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
           background: '#1c1c1c', color: 'white', padding: '12px 20px', borderRadius: '12px',
-          fontSize: '12px', fontFamily: "'Poppins', sans-serif", zIndex: 2000,
+          fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: "'Poppins', sans-serif", zIndex: 2000,
           maxWidth: '90vw', textAlign: 'center', animation: 'fadeInOut 6s ease',
         }}>
           {toast}
@@ -750,8 +757,8 @@ function VideoCard({ item, isEditor, isHidden, onHide, onUnhide }: { item: Media
           style={{
             display: 'block', width: '100%', marginTop: '8px', padding: '8px 0',
             background: '#e97872', color: 'white', border: 'none', borderRadius: '20px',
-            fontFamily: 'Poppins, sans-serif', fontSize: '11px', textTransform: 'uppercase',
-            letterSpacing: '0.06em', textAlign: 'center', textDecoration: 'none', cursor: 'pointer',
+            fontFamily: 'Poppins, sans-serif', fontSize: '16px', fontWeight: 300, lineHeight: '20px',
+            textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', textDecoration: 'none', cursor: 'pointer',
           }}
         >Telecharger</a>
       )}
@@ -766,7 +773,7 @@ function VideoCard({ item, isEditor, isHidden, onHide, onUnhide }: { item: Media
         <button onClick={onUnhide} style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
           background: '#e97872', color: 'white', border: 'none', borderRadius: '20px',
-          padding: '8px 20px', fontSize: '11px', fontFamily: 'Poppins, sans-serif',
+          padding: '8px 20px', fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: 'Poppins, sans-serif',
           textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
         }}>Restaurer</button>
       )}
@@ -803,7 +810,7 @@ function PhotoCard({ item, onOpen, isEditor, isHidden, onHide, onUnhide }: { ite
         <button onClick={e => { e.stopPropagation(); onUnhide() }} style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
           background: '#e97872', color: 'white', border: 'none', borderRadius: '20px',
-          padding: '8px 20px', fontSize: '11px', fontFamily: 'Poppins, sans-serif',
+          padding: '8px 20px', fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: 'Poppins, sans-serif',
           textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', zIndex: 10,
         }}>Restaurer</button>
       )}

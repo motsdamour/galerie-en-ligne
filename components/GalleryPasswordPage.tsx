@@ -73,15 +73,15 @@ export default function GalleryPasswordPage({
           style={{ display: 'block', margin: '0 auto 28px' }}
         />
 
-        <p style={{ fontSize: '10px', letterSpacing: '0.16em', color: '#e97872', textTransform: 'uppercase', fontFamily: "'Poppins', sans-serif", marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', letterSpacing: '0.16em', color: '#e97872', textTransform: 'uppercase', fontFamily: "'Poppins', sans-serif", marginBottom: '8px' }}>
           Galerie privee
         </p>
-        <h1 style={{ fontSize: '28px', fontWeight: 400, fontStyle: 'italic', color: '#3c3c3b', marginBottom: '12px', fontFamily: "'Poppins', sans-serif" }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#3c3c3b', marginBottom: '12px', fontFamily: "'Poppins', sans-serif", lineHeight: '20px' }}>
           {coupleName}
         </h1>
 
         {daysLeft > 0 && (
-          <p style={{ fontSize: '11px', color: '#b4b2a9', fontFamily: "'Poppins', sans-serif", marginBottom: '28px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#b4b2a9', fontFamily: "'Poppins', sans-serif", marginBottom: '28px' }}>
             Il reste {daysLeft} jour{daysLeft > 1 ? 's' : ''} d'acces
           </p>
         )}
@@ -93,7 +93,7 @@ export default function GalleryPasswordPage({
         </div>
 
         <form onSubmit={handleSubmit}>
-          <p style={{ fontSize: '13px', color: '#888780', fontFamily: "'Poppins', sans-serif", marginBottom: '16px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#888780', fontFamily: "'Poppins', sans-serif", marginBottom: '16px' }}>
             Entrez le mot de passe pour acceder a vos souvenirs
           </p>
           <input
@@ -104,14 +104,14 @@ export default function GalleryPasswordPage({
             style={{
               marginBottom: '12px', textAlign: 'center', letterSpacing: '0.1em',
               width: '100%', padding: '14px', border: '0.5px solid #e8e0d8',
-              borderRadius: '12px', fontSize: '14px', fontFamily: "'Poppins', sans-serif",
+              borderRadius: '12px', fontSize: '16px', fontWeight: 300, fontFamily: "'Poppins', sans-serif",
               outline: 'none',
             }}
             required
             autoFocus
           />
           {error && (
-            <p style={{ fontSize: '12px', color: '#e97872', fontFamily: "'Poppins', sans-serif", marginBottom: '12px' }}>
+            <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#e97872', fontFamily: "'Poppins', sans-serif", marginBottom: '12px' }}>
               {error}
             </p>
           )}
@@ -120,8 +120,8 @@ export default function GalleryPasswordPage({
             disabled={loading}
             style={{
               width: '100%', padding: '14px', background: '#e97872', color: 'white',
-              border: 'none', borderRadius: '25px', fontSize: '12px',
-              fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em',
+              border: 'none', borderRadius: '25px', fontSize: '16px', fontWeight: 300,
+              fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', lineHeight: '20px',
               textTransform: 'uppercase', cursor: loading ? 'default' : 'pointer',
               opacity: loading ? 0.6 : 1,
             }}
@@ -131,7 +131,7 @@ export default function GalleryPasswordPage({
         </form>
       </div>
 
-      <p style={{ fontSize: '11px', color: '#b4b2a9', fontFamily: "'Poppins', sans-serif", marginTop: '32px', letterSpacing: '0.06em' }}>
+      <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#b4b2a9', fontFamily: "'Poppins', sans-serif", marginTop: '32px', letterSpacing: '0.06em' }}>
         Galerie privee · Mots d'Amour
       </p>
     </div>
