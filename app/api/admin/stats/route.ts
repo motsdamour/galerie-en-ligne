@@ -2,50 +2,54 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { verifyAdminToken } from '@/lib/auth'
 
-const MEDIA_EXTENSIONS = new Set(['mp4', 'mov', 'jpg', 'jpeg', 'png', 'webp'])
+/* ─── In-memory cache (10 min) ─── */
+let pcloudCache: { totalMedia: number; totalGuest: number; ts: number } | null = null
+const CACHE_TTL = 10 * 60 * 1000
 
-async function countPCloudFiles(): Promise<{ totalFiles: number; sharedFiles: number }> {
-  const token = process.env.PCLOUD_AUTH_TOKEN
-  if (!token) return { totalFiles: 0, sharedFiles: 0 }
+async function countPCloudMedia(folderIds: string[]): Promise<{ totalMedia: number; totalGuest: number }> {
+  if (pcloudCache && Date.now() - pcloudCache.ts < CACHE_TTL) {
+    return { totalMedia: pcloudCache.totalMedia, totalGuest: pcloudCache.totalGuest }
+  }
 
-  try {
-    const res = await fetch(
-      `https://eapi.pcloud.com/listfolder?folderid=0&recursive=1&auth=${token}`,
-      { next: { revalidate: 300 } }
-    )
-    if (!res.ok) return { totalFiles: 0, sharedFiles: 0 }
+  const auth = process.env.PCLOUD_AUTH_TOKEN
+  if (!auth || folderIds.length === 0) return { totalMedia: 0, totalGuest: 0 }
 
-    const data = await res.json()
-    if (data.result !== 0) return { totalFiles: 0, sharedFiles: 0 }
+  let totalMedia = 0
+  let totalGuest = 0
 
-    let totalFiles = 0
-    let sharedFiles = 0
-
-    function walk(contents: any[]) {
-      for (const item of contents) {
-        if (item.isfolder) {
-          if (item.contents) walk(item.contents)
-        } else {
-          const name: string = item.name || ''
-          const ext = name.split('.').pop()?.toLowerCase() || ''
-          if (MEDIA_EXTENSIONS.has(ext)) {
-            totalFiles++
-            if (name.startsWith('invite_')) {
-              sharedFiles++
-            }
+  function countFiles(contents: any[]) {
+    if (!contents) return
+    for (const item of contents) {
+      if (item.isfolder) {
+        countFiles(item.contents)
+      } else {
+        const name: string = (item.name || '').toLowerCase()
+        if (name.match(/\.(mp4|mov|jpg|jpeg|png|webp|heic)$/)) {
+          totalMedia++
+          if (name.startsWith('invite_')) {
+            totalGuest++
           }
         }
       }
     }
-
-    if (data.metadata?.contents) {
-      walk(data.metadata.contents)
-    }
-
-    return { totalFiles, sharedFiles }
-  } catch {
-    return { totalFiles: 0, sharedFiles: 0 }
   }
+
+  for (const folderId of folderIds) {
+    try {
+      const res = await fetch(
+        `https://eapi.pcloud.com/listfolder?auth=${auth}&folderid=${folderId}&recursive=1`
+      )
+      if (!res.ok) continue
+      const data = await res.json()
+      if (data.result !== 0) continue
+      countFiles(data.metadata?.contents)
+    } catch {
+      continue
+    }
+  }
+
+  pcloudCache = { totalMedia, totalGuest, ts: Date.now() }
+  return { totalMedia, totalGuest }
 }
 
 export async function GET(req: NextRequest) {
@@ -58,23 +62,28 @@ export async function GET(req: NextRequest) {
 
   const db = supabaseAdmin()
 
-  const [eventsRes, pcloudStats] = await Promise.all([
-    db.from('events').select('id, is_active, expires_at'),
-    countPCloudFiles(),
-  ])
+  const { data: events } = await db
+    .from('events')
+    .select('id, is_active, expires_at, pcloud_folder_id')
 
-  const events = eventsRes.data || []
+  const allEvents = events || []
   const now = new Date().toISOString()
 
-  const totalGalleries = events.length
-  const liveGalleries = events.filter(
+  const totalGalleries = allEvents.length
+  const liveGalleries = allEvents.filter(
     e => e.is_active && (!e.expires_at || e.expires_at > now)
   ).length
+
+  const folderIds = allEvents
+    .map(e => e.pcloud_folder_id)
+    .filter((id): id is string => !!id)
+
+  const { totalMedia, totalGuest } = await countPCloudMedia(folderIds)
 
   return NextResponse.json({
     totalGalleries,
     liveGalleries,
-    totalFiles: pcloudStats.totalFiles,
-    sharedFiles: pcloudStats.sharedFiles,
+    totalFiles: totalMedia,
+    sharedFiles: totalGuest,
   })
 }
