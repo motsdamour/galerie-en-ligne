@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, use } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useAdmin } from '@/components/admin/AdminShell'
 
 export default function GalleryDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -15,6 +15,15 @@ export default function GalleryDetailPage({ params }: { params: Promise<{ slug: 
   const [qrModal, setQrModal] = useState(false)
   const [editingPwd, setEditingPwd] = useState<string | null>(null)
   const [savingPwd, setSavingPwd] = useState(false)
+  const [mediaStats, setMediaStats] = useState({ videoCount: 0, photoCount: 0, guestCount: 0, totalMedia: 0 })
+
+  useEffect(() => {
+    if (!token || !slug) return
+    fetch(`/api/admin/galleries/${slug}/stats`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { if (d.totalMedia !== undefined) setMediaStats(d) })
+      .catch(() => {})
+  }, [token, slug])
 
   if (!ev) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, padding: '0 36px' }}>
@@ -222,10 +231,10 @@ export default function GalleryDetailPage({ params }: { params: Promise<{ slug: 
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               {[
-                { label: 'Vidéos', value: '—', color: '#3c3c3b' },
-                { label: 'Photos', value: '—', color: '#3c3c3b' },
-                { label: 'Médias invités', value: '—', color: '#3c3c3b' },
-                { label: 'Vues', value: '—', color: '#3c3c3b' },
+                { label: 'Vidéos', value: mediaStats.videoCount, color: '#3c3c3b' },
+                { label: 'Photos', value: mediaStats.photoCount, color: '#3c3c3b' },
+                { label: 'Médias invités', value: mediaStats.guestCount, color: '#3c3c3b' },
+                { label: 'Total médias', value: mediaStats.totalMedia, color: '#3c3c3b' },
               ].map(s => (
                 <div key={s.label} style={{ background: '#fff8f5', borderRadius: 10, padding: 14 }}>
                   <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 500, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
