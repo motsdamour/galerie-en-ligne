@@ -5,7 +5,6 @@ import Topbar from '@/components/admin/Topbar'
 
 export default function MariesPage() {
   const { events } = useAdmin()
-
   const now = new Date()
 
   function getStatus(ev: typeof events[0]) {
@@ -27,7 +26,7 @@ export default function MariesPage() {
       <span style={{
         background: s.bg, color: s.color,
         padding: '3px 10px', borderRadius: 999,
-        fontSize: 11, fontFamily: "'Poppins', sans-serif", fontWeight: 500,
+        fontSize: 11, fontFamily: "'Poppins', sans-serif", fontWeight: 600,
       }}>
         {s.label}
       </span>
@@ -41,10 +40,10 @@ export default function MariesPage() {
   }
 
   return (
-    <>
+    <div style={{ padding: '0 36px 36px' }}>
       <Topbar title="Mariés" subtitle="Gestion" />
 
-      <div style={{ background: 'white', border: '1px solid #f0e6e0', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: 'white', border: '1px solid #f0e6e0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px -4px rgba(60,60,59,.06)' }}>
         {events.length === 0 ? (
           <p style={{ padding: 24, fontFamily: "'Poppins', sans-serif", fontSize: 13, color: '#9a9a97' }}>Aucun couple enregistré.</p>
         ) : (
@@ -58,12 +57,15 @@ export default function MariesPage() {
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '14px 20px', borderBottom: '1px solid #f7f0ec',
                   textDecoration: 'none', color: 'inherit',
+                  transition: 'background 0.1s',
                 }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#faf6f3')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'white')}
               >
                 <div style={{
                   width: 48, height: 48, borderRadius: 999, background: '#f7f0ec',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 500,
+                  fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 600,
                   color: '#6e6968', flexShrink: 0,
                 }}>
                   {getInitials(ev.couple_name)}
@@ -86,12 +88,12 @@ export default function MariesPage() {
                   {new Date(ev.event_date).toLocaleDateString('fr-FR')}
                 </p>
                 {statusPill(status)}
-                <span style={{ color: '#9a9a97', fontSize: 18 }}>→</span>
+                <span style={{ color: '#b3aeac', fontSize: 14 }}>→</span>
               </a>
             )
           })
         )}
       </div>
-    </>
+    </div>
   )
 }

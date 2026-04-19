@@ -48,7 +48,7 @@ export default function LoueursPage() {
   }
 
   return (
-    <>
+    <div style={{ padding: '0 36px 36px' }}>
       <Topbar title="Loueurs videobooth" subtitle="Gestion" actionLabel="Ajouter un loueur" onAction={() => setShowAdd(true)} />
 
       {/* Add modal */}
@@ -63,8 +63,8 @@ export default function LoueursPage() {
               <div><label style={labelStyle}>Email</label><input type="email" placeholder="marie@exemple.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required /></div>
               <div><label style={labelStyle}>Téléphone</label><input type="tel" placeholder="06 12 34 56 78" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
               <div style={{ gridColumn: 'span 2', display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button type="button" onClick={() => setShowAdd(false)} style={{ background: 'transparent', border: '1px solid #f0e6e0', borderRadius: 999, padding: '10px 24px', fontSize: 12, fontFamily: "'Poppins', sans-serif", cursor: 'pointer', color: '#6e6968' }}>Annuler</button>
-                <button type="submit" disabled={saving} style={{ background: '#E98172', color: 'white', border: 'none', borderRadius: 999, padding: '10px 24px', fontSize: 12, fontFamily: "'Poppins', sans-serif", fontWeight: 500, cursor: 'pointer' }}>
+                <button type="button" onClick={() => setShowAdd(false)} style={{ background: 'transparent', border: '1px solid #f0e6e0', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontFamily: "'Poppins', sans-serif", cursor: 'pointer', color: '#6e6968' }}>Annuler</button>
+                <button type="submit" disabled={saving} style={{ background: '#E98172', color: 'white', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontFamily: "'Poppins', sans-serif", fontWeight: 500, cursor: 'pointer' }}>
                   {saving ? 'Enregistrement...' : 'Enregistrer'}
                 </button>
               </div>
@@ -77,48 +77,52 @@ export default function LoueursPage() {
       {users.length === 0 ? (
         <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 13, color: '#9a9a97' }}>Aucun loueur pour l&apos;instant.</p>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 16 }}>
           {users.map(u => (
             <div key={u.id} style={{
-              background: 'white', border: '1px solid #f0e6e0', borderRadius: 12, padding: 24,
+              background: 'white',
+              border: '1px solid #f0e6e0',
+              borderRadius: 14,
+              padding: 22,
               position: 'relative',
+              boxShadow: '0 2px 12px -4px rgba(60,60,59,.06)',
             }}>
               <button
                 onClick={() => deleteUser(u.id)}
                 disabled={deletingId === u.id}
                 style={{
-                  position: 'absolute', top: 12, right: 12,
-                  background: 'transparent', border: 'none', fontSize: 11,
-                  fontFamily: "'Poppins', sans-serif", cursor: 'pointer',
-                  color: '#b71c1c', opacity: deletingId === u.id ? 0.5 : 1,
+                  position: 'absolute', top: 14, right: 14,
+                  background: 'transparent', border: 'none', fontSize: 16,
+                  cursor: 'pointer', color: '#b3aeac',
+                  opacity: deletingId === u.id ? 0.5 : 1, padding: 0, lineHeight: 1,
                 }}
               >
-                {deletingId === u.id ? '...' : '×'}
+                ×
               </button>
               <div style={{
                 width: 52, height: 52, borderRadius: 999, background: '#3c3c3b',
                 color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: "'Poppins', sans-serif", fontSize: 18, fontWeight: 500,
-                marginBottom: 14,
+                fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 500,
+                fontStyle: 'italic', marginBottom: 14,
               }}>
                 {u.firstname.charAt(0).toUpperCase()}
               </div>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 15, fontWeight: 500, color: '#3c3c3b', margin: 0 }}>
+              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 15, fontWeight: 600, color: '#3c3c3b', margin: '0 0 2px 0' }}>
                 {u.firstname} {u.name}
               </p>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 12, color: '#9a9a97', margin: '2px 0 12px' }}>
+              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 12, color: '#9a9a97', margin: '0 0 14px 0' }}>
                 {u.email}
               </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{
                   background: '#e8f5e9', color: '#2e7d32',
                   padding: '3px 10px', borderRadius: 999,
-                  fontSize: 11, fontFamily: "'Poppins', sans-serif", fontWeight: 500,
+                  fontSize: 11, fontFamily: "'Poppins', sans-serif", fontWeight: 600,
                 }}>
                   {u.gallery_count} galerie{u.gallery_count !== 1 ? 's' : ''}
                 </span>
                 {u.phone && (
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#6e6968' }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: '#9a9a97' }}>
                     {u.phone}
                   </span>
                 )}
@@ -127,6 +131,6 @@ export default function LoueursPage() {
           ))}
         </div>
       )}
-    </>
+    </div>
   )
 }

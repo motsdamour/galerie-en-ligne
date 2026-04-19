@@ -1,22 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAdmin } from '@/components/admin/AdminShell'
 import Topbar from '@/components/admin/Topbar'
+
+/* ─── Count-up hook ─── */
+function useCountUp(target: number, duration = 1500) {
+  const [value, setValue] = useState(0)
+  const started = useRef(false)
+  useEffect(() => {
+    if (started.current || target === 0) { setValue(target); return }
+    started.current = true
+    const start = performance.now()
+    function tick(now: number) {
+      const progress = Math.min((now - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setValue(Math.round(eased * target))
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, [target, duration])
+  return value
+}
 
 export default function OverviewPage() {
   const { events, users, token, loadEvents } = useAdmin()
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ coupleName: '', eventDate: '', eventType: 'mariage', pcloudFolderId: '', customPassword: '', coupleEmail: '' })
   const [creating, setCreating] = useState(false)
+  const [stats, setStats] = useState({ totalGalleries: 0, liveGalleries: 0, totalSessions: 0 })
+
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { if (d.totalGalleries !== undefined) setStats(d) })
+      .catch(() => {})
+  }, [token])
 
   const now = new Date()
-  const activeEvents = events.filter(e => e.is_active && (!e.expires_at || new Date(e.expires_at) > now))
-  const expiringSoon = events.filter(e => {
-    if (!e.expires_at) return false
-    const days = Math.ceil((new Date(e.expires_at).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    return days > 0 && days <= 7
-  })
+
+  const countTotal = useCountUp(stats.totalGalleries)
+  const countLive = useCountUp(stats.liveGalleries)
+  const countMedia = useCountUp(0)
+  const countSessions = useCountUp(stats.totalSessions)
 
   const today = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -49,20 +76,20 @@ export default function OverviewPage() {
   }
 
   function statusPill(status: string) {
-    const styles: Record<string, { bg: string; color: string; label: string }> = {
+    const s: Record<string, { bg: string; color: string; label: string }> = {
       active: { bg: '#e8f5e9', color: '#2e7d32', label: 'En ligne' },
       expiring: { bg: '#fff3e0', color: '#e65100', label: 'Expire bientôt' },
       expired: { bg: '#fce4ec', color: '#b71c1c', label: 'Expirée' },
     }
-    const s = styles[status] || styles.active
+    const st = s[status] || s.active
     return (
       <span style={{
-        background: s.bg, color: s.color,
+        background: st.bg, color: st.color,
         padding: '3px 10px', borderRadius: 999,
-        fontSize: 11, fontFamily: "'Poppins', sans-serif", fontWeight: 500,
+        fontSize: 11, fontFamily: "'Poppins', sans-serif", fontWeight: 600,
         whiteSpace: 'nowrap',
       }}>
-        {s.label}
+        {st.label}
       </span>
     )
   }
@@ -73,9 +100,25 @@ export default function OverviewPage() {
   }
 
   const recent = [...events].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
+  const toWatch = events
+    .filter(e => e.expires_at && daysRemaining(e) <= 15 && daysRemaining(e) > 0)
+    .sort((a, b) => daysRemaining(a) - daysRemaining(b))
+
+  const kpis = [
+    { label: 'Galeries créées', value: countTotal, color: '#3c3c3b', bg: '#3c3c3b18',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3c3c3b" strokeWidth="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg> },
+    { label: 'En ligne', value: countLive, color: '#6a8b6e', bg: '#6a8b6e18',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6a8b6e" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> },
+    { label: 'Médias livrés', value: countMedia, color: '#b89358', bg: '#b8935818',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b89358" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> },
+    { label: 'Invités connectés', value: countSessions, color: '#c28b3d', bg: '#c28b3d18',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c28b3d" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> },
+  ]
+
+  const labelStyle: React.CSSProperties = { fontSize: 11, color: '#9a9a97', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }
 
   return (
-    <>
+    <div style={{ padding: '0 36px 36px' }}>
       <Topbar
         title="Bonjour, Christian"
         subtitle={today}
@@ -90,37 +133,15 @@ export default function OverviewPage() {
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: 36, width: '100%', maxWidth: 520 }}>
             <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontStyle: 'italic', fontWeight: 500, color: '#3c3c3b', marginBottom: 24 }}>Nouvelle galerie</h3>
             <form onSubmit={createEvent} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div>
-                <label style={{ fontSize: 11, color: '#9a9a97', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Noms des mariés</label>
-                <input type="text" placeholder="Sophie & Thomas" value={form.coupleName} onChange={e => setForm(f => ({ ...f, coupleName: e.target.value }))} required />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: '#9a9a97', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Date</label>
-                <input type="date" value={form.eventDate} onChange={e => setForm(f => ({ ...f, eventDate: e.target.value }))} required />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: '#9a9a97', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Type</label>
-                <select value={form.eventType} onChange={e => setForm(f => ({ ...f, eventType: e.target.value }))}>
-                  <option value="mariage">Mariage</option>
-                  <option value="anniversaire">Anniversaire</option>
-                  <option value="autre">Autre</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: '#9a9a97', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>ID dossier pCloud</label>
-                <input type="text" placeholder="123456789" value={form.pcloudFolderId} onChange={e => setForm(f => ({ ...f, pcloudFolderId: e.target.value }))} required />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: '#9a9a97', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Mot de passe (optionnel)</label>
-                <input type="text" placeholder="Généré auto si vide" value={form.customPassword} onChange={e => setForm(f => ({ ...f, customPassword: e.target.value }))} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: '#9a9a97', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Email mariés (optionnel)</label>
-                <input type="email" placeholder="couple@exemple.com" value={form.coupleEmail} onChange={e => setForm(f => ({ ...f, coupleEmail: e.target.value }))} />
-              </div>
+              <div><label style={labelStyle}>Noms des mariés</label><input type="text" placeholder="Sophie & Thomas" value={form.coupleName} onChange={e => setForm(f => ({ ...f, coupleName: e.target.value }))} required /></div>
+              <div><label style={labelStyle}>Date</label><input type="date" value={form.eventDate} onChange={e => setForm(f => ({ ...f, eventDate: e.target.value }))} required /></div>
+              <div><label style={labelStyle}>Type</label><select value={form.eventType} onChange={e => setForm(f => ({ ...f, eventType: e.target.value }))}><option value="mariage">Mariage</option><option value="anniversaire">Anniversaire</option><option value="autre">Autre</option></select></div>
+              <div><label style={labelStyle}>ID dossier pCloud</label><input type="text" placeholder="123456789" value={form.pcloudFolderId} onChange={e => setForm(f => ({ ...f, pcloudFolderId: e.target.value }))} required /></div>
+              <div><label style={labelStyle}>Mot de passe (optionnel)</label><input type="text" placeholder="Généré auto si vide" value={form.customPassword} onChange={e => setForm(f => ({ ...f, customPassword: e.target.value }))} /></div>
+              <div><label style={labelStyle}>Email mariés (optionnel)</label><input type="email" placeholder="couple@exemple.com" value={form.coupleEmail} onChange={e => setForm(f => ({ ...f, coupleEmail: e.target.value }))} /></div>
               <div style={{ gridColumn: 'span 2', display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button type="button" onClick={() => setShowCreate(false)} style={{ background: 'transparent', border: '1px solid #f0e6e0', borderRadius: 999, padding: '10px 24px', fontSize: 12, fontFamily: "'Poppins', sans-serif", cursor: 'pointer', color: '#6e6968' }}>Annuler</button>
-                <button type="submit" disabled={creating} style={{ background: '#E98172', color: 'white', border: 'none', borderRadius: 999, padding: '10px 24px', fontSize: 12, fontFamily: "'Poppins', sans-serif", fontWeight: 500, cursor: 'pointer' }}>
+                <button type="button" onClick={() => setShowCreate(false)} style={{ background: 'transparent', border: '1px solid #f0e6e0', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontFamily: "'Poppins', sans-serif", cursor: 'pointer', color: '#6e6968' }}>Annuler</button>
+                <button type="submit" disabled={creating} style={{ background: '#E98172', color: 'white', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontFamily: "'Poppins', sans-serif", fontWeight: 500, cursor: 'pointer' }}>
                   {creating ? 'Création...' : 'Créer la galerie'}
                 </button>
               </div>
@@ -131,26 +152,34 @@ export default function OverviewPage() {
 
       {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
-        {[
-          { label: 'Galeries totales', value: events.length, color: '#3c3c3b' },
-          { label: 'En ligne', value: activeEvents.length, color: '#6a8b6e' },
-          { label: 'Expire bientôt', value: expiringSoon.length, color: '#c28b3d' },
-          { label: 'Médias livrés', value: '—', color: '#b89358' },
-        ].map(kpi => (
+        {kpis.map(kpi => (
           <div key={kpi.label} style={{
-            background: 'white', border: '1px solid #f0e6e0', borderRadius: 12, padding: 24,
+            background: 'white',
+            border: '1px solid #f0e6e0',
+            borderRadius: 14,
+            padding: 20,
+            boxShadow: '0 2px 12px -4px rgba(60,60,59,.06)',
           }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+              <p style={{
+                fontFamily: "'Poppins', sans-serif", fontSize: 10.5, fontWeight: 600,
+                letterSpacing: '0.18em', textTransform: 'uppercase', color: '#9a9a97', margin: 0,
+              }}>
+                {kpi.label}
+              </p>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: kpi.bg,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {kpi.icon}
+              </div>
+            </div>
             <p style={{
-              fontFamily: "'Cormorant Garamond', serif", fontSize: 36, fontWeight: 600,
-              fontStyle: 'italic', color: kpi.color, margin: 0, lineHeight: 1,
+              fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 500,
+              color: kpi.color, margin: 0, lineHeight: 1,
             }}>
               {kpi.value}
-            </p>
-            <p style={{
-              fontFamily: "'Poppins', sans-serif", fontSize: 11, color: '#9a9a97',
-              letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 8,
-            }}>
-              {kpi.label}
             </p>
           </div>
         ))}
@@ -159,17 +188,17 @@ export default function OverviewPage() {
       {/* Two-column grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         {/* Galeries récentes */}
-        <div style={{ background: 'white', border: '1px solid #f0e6e0', borderRadius: 12, padding: 24 }}>
+        <div style={{ background: 'white', border: '1px solid #f0e6e0', borderRadius: 14, padding: 24, boxShadow: '0 2px 12px -4px rgba(60,60,59,.06)' }}>
           <h3 style={{
-            fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontStyle: 'italic',
-            fontWeight: 500, color: '#3c3c3b', marginBottom: 20,
+            fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontStyle: 'italic',
+            fontWeight: 500, color: '#3c3c3b', marginBottom: 20, margin: '0 0 20px 0',
           }}>
             Galeries récentes
           </h3>
           {recent.length === 0 ? (
             <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 13, color: '#9a9a97' }}>Aucune galerie.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div>
               {recent.map(ev => {
                 const status = getStatus(ev)
                 return (
@@ -178,15 +207,18 @@ export default function OverviewPage() {
                     href={`/admin/galleries/${ev.slug}`}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '12px 0', borderBottom: '1px solid #f7f0ec',
+                      padding: '12px 4px', borderBottom: '1px solid #f7f0ec',
                       textDecoration: 'none', color: 'inherit',
+                      transition: 'background 0.1s',
                     }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#faf6f3')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
                     <div style={{
-                      width: 48, height: 48, borderRadius: 999, background: '#f7f0ec',
+                      width: 48, height: 48, borderRadius: 10, background: 'linear-gradient(135deg, #f7f0ec 0%, #fce8e4 100%)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic',
-                      fontSize: 16, color: '#6e6968', flexShrink: 0,
+                      fontSize: 18, fontWeight: 500, color: '#E98172', flexShrink: 0,
                     }}>
                       {ev.couple_name.charAt(0)}
                     </div>
@@ -205,7 +237,7 @@ export default function OverviewPage() {
                       </p>
                     </div>
                     {statusPill(status)}
-                    <span style={{ color: '#9a9a97', fontSize: 16 }}>→</span>
+                    <span style={{ color: '#b3aeac', fontSize: 14 }}>→</span>
                   </a>
                 )
               })}
@@ -213,53 +245,49 @@ export default function OverviewPage() {
           )}
         </div>
 
-        {/* Expirations imminentes */}
-        <div style={{ background: 'white', border: '1px solid #f0e6e0', borderRadius: 12, padding: 24 }}>
+        {/* À surveiller */}
+        <div style={{ background: 'white', border: '1px solid #f0e6e0', borderRadius: 14, padding: 24, boxShadow: '0 2px 12px -4px rgba(60,60,59,.06)' }}>
           <h3 style={{
-            fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontStyle: 'italic',
-            fontWeight: 500, color: '#3c3c3b', marginBottom: 20,
+            fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontStyle: 'italic',
+            fontWeight: 500, color: '#3c3c3b', marginBottom: 20, margin: '0 0 20px 0',
           }}>
-            Expirations imminentes
+            À surveiller
           </h3>
-          {(() => {
-            const expiring = events
-              .filter(e => e.expires_at && daysRemaining(e) <= 30 && daysRemaining(e) > 0)
-              .sort((a, b) => daysRemaining(a) - daysRemaining(b))
-            if (expiring.length === 0) return <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 13, color: '#9a9a97' }}>Aucune expiration imminente.</p>
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                {expiring.map(ev => {
-                  const days = daysRemaining(ev)
-                  const status = getStatus(ev)
-                  const barColor = status === 'expiring' ? '#e65100' : '#6a8b6e'
-                  const pct = Math.min(100, (days / 30) * 100)
-                  return (
-                    <div key={ev.id} style={{ padding: '12px 0', borderBottom: '1px solid #f7f0ec' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <p style={{
-                          fontFamily: "'Cormorant Garamond', serif", fontSize: 16,
-                          fontStyle: 'italic', fontWeight: 500, color: '#3c3c3b', margin: 0,
-                        }}>
-                          {ev.couple_name}
-                        </p>
-                        {statusPill(status)}
-                      </div>
-                      <div style={{ background: '#f0e6e0', borderRadius: 999, height: 4, overflow: 'hidden' }}>
-                        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: barColor, transition: 'width 0.3s' }} />
-                      </div>
+          {toWatch.length === 0 ? (
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 13, color: '#9a9a97' }}>Aucune expiration imminente.</p>
+          ) : (
+            <div>
+              {toWatch.map(ev => {
+                const days = daysRemaining(ev)
+                const status = getStatus(ev)
+                const barColor = days <= 3 ? '#b71c1c' : days <= 7 ? '#e65100' : '#6a8b6e'
+                const pct = Math.min(100, (days / 15) * 100)
+                return (
+                  <div key={ev.id} style={{ padding: '12px 0', borderBottom: '1px solid #f7f0ec' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <p style={{
-                        fontFamily: "'Poppins', sans-serif", fontSize: 11, color: '#9a9a97', marginTop: 4,
+                        fontFamily: "'Cormorant Garamond', serif", fontSize: 17,
+                        fontStyle: 'italic', fontWeight: 500, color: '#3c3c3b', margin: 0,
                       }}>
-                        {days} jour{days > 1 ? 's' : ''} restant{days > 1 ? 's' : ''}
+                        {ev.couple_name}
                       </p>
+                      {statusPill(status)}
                     </div>
-                  )
-                })}
-              </div>
-            )
-          })()}
+                    <div style={{ background: '#f0e6e0', borderRadius: 999, height: 4, overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: barColor, transition: 'width 0.3s' }} />
+                    </div>
+                    <p style={{
+                      fontFamily: "'Poppins', sans-serif", fontSize: 11, color: '#9a9a97', marginTop: 4, margin: '4px 0 0 0',
+                    }}>
+                      {days} jour{days > 1 ? 's' : ''} restant{days > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
-    </>
+    </div>
   )
 }
