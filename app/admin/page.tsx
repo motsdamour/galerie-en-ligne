@@ -28,7 +28,7 @@ export default function OverviewPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ coupleName: '', eventDate: '', eventType: 'mariage', pcloudFolderId: '', customPassword: '', coupleEmail: '' })
   const [creating, setCreating] = useState(false)
-  const [stats, setStats] = useState({ totalGalleries: 0, liveGalleries: 0, totalSessions: 0 })
+  const [stats, setStats] = useState({ totalGalleries: 0, liveGalleries: 0, totalFiles: 0, sharedFiles: 0 })
 
   useEffect(() => {
     if (!token) return
@@ -42,8 +42,8 @@ export default function OverviewPage() {
 
   const countTotal = useCountUp(stats.totalGalleries)
   const countLive = useCountUp(stats.liveGalleries)
-  const countMedia = useCountUp(0)
-  const countSessions = useCountUp(stats.totalSessions)
+  const countMedia = useCountUp(stats.totalFiles)
+  const countShared = useCountUp(stats.sharedFiles)
 
   const today = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -100,9 +100,16 @@ export default function OverviewPage() {
   }
 
   const recent = [...events].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
-  const toWatch = events
+
+  const urgentWatch = events
     .filter(e => e.expires_at && daysRemaining(e) <= 15 && daysRemaining(e) > 0)
     .sort((a, b) => daysRemaining(a) - daysRemaining(b))
+  const toWatch = urgentWatch.length > 0
+    ? urgentWatch
+    : [...events]
+        .filter(e => daysRemaining(e) > 0)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 4)
 
   const kpis = [
     { label: 'Galeries créées', value: countTotal, color: '#3c3c3b', bg: '#3c3c3b18',
@@ -111,8 +118,8 @@ export default function OverviewPage() {
       icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6a8b6e" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> },
     { label: 'Médias livrés', value: countMedia, color: '#b89358', bg: '#b8935818',
       icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b89358" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> },
-    { label: 'Invités connectés', value: countSessions, color: '#c28b3d', bg: '#c28b3d18',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c28b3d" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> },
+    { label: 'Souvenirs partagés', value: countShared, color: '#c28b3d', bg: '#c28b3d18',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c28b3d" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg> },
   ]
 
   const labelStyle: React.CSSProperties = { fontSize: 11, color: '#9a9a97', fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }
@@ -254,14 +261,14 @@ export default function OverviewPage() {
             À surveiller
           </h3>
           {toWatch.length === 0 ? (
-            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 13, color: '#9a9a97' }}>Aucune expiration imminente.</p>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 13, color: '#9a9a97' }}>Aucune galerie.</p>
           ) : (
             <div>
               {toWatch.map(ev => {
                 const days = daysRemaining(ev)
                 const status = getStatus(ev)
-                const barColor = days <= 3 ? '#b71c1c' : days <= 7 ? '#e65100' : '#6a8b6e'
-                const pct = Math.min(100, (days / 15) * 100)
+                const barColor = days < 7 ? '#E98172' : days <= 15 ? '#c28b3d' : '#6a8b6e'
+                const pct = Math.min(100, (days / 30) * 100)
                 return (
                   <div key={ev.id} style={{ padding: '12px 0', borderBottom: '1px solid #f7f0ec' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
