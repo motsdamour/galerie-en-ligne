@@ -26,7 +26,7 @@ export default function MariesPage() {
       <span style={{
         background: s.bg, color: s.color,
         padding: '3px 10px', borderRadius: 999,
-        fontSize: 11, fontFamily: "'Poppins', sans-serif", fontWeight: 600,
+        fontSize: 11, fontFamily: "'Inter', sans-serif", fontWeight: 600,
       }}>
         {s.label}
       </span>
@@ -43,9 +43,9 @@ export default function MariesPage() {
     <div style={{ padding: '0 36px 36px' }}>
       <Topbar title="Mariés" subtitle="Gestion" />
 
-      <div style={{ background: 'white', border: '1px solid #f0e6e0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px -4px rgba(60,60,59,.06)' }}>
+      <div style={{ background: 'white', border: '1px solid #E8E4DF', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px -4px rgba(0,0,0,.06)' }}>
         {events.length === 0 ? (
-          <p style={{ padding: 24, fontFamily: "'Poppins', sans-serif", fontSize: 13, color: '#9a9a97' }}>Aucun couple enregistré.</p>
+          <p style={{ padding: 24, fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#9B9B9B' }}>Aucun couple enregistré.</p>
         ) : (
           events.map(ev => {
             const status = getStatus(ev)
@@ -55,40 +55,40 @@ export default function MariesPage() {
                 href={`/admin/galleries/${ev.slug}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '14px 20px', borderBottom: '1px solid #f7f0ec',
+                  padding: '14px 20px', borderBottom: '1px solid #F0EDE8',
                   textDecoration: 'none', color: 'inherit',
                   transition: 'background 0.1s',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#faf6f3')}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F0EDE8')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'white')}
               >
                 <div style={{
-                  width: 48, height: 48, borderRadius: 999, background: '#f7f0ec',
+                  width: 48, height: 48, borderRadius: 999, background: '#F0EDE8',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 600,
-                  color: '#6e6968', flexShrink: 0,
+                  fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600,
+                  color: '#6B6B6B', flexShrink: 0,
                 }}>
                   {getInitials(ev.couple_name)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{
-                    fontFamily: "'Cormorant Garamond', serif", fontSize: 18,
-                    fontStyle: 'italic', fontWeight: 500, color: '#3c3c3b',
+                    fontFamily: "'Playfair Display', serif", fontSize: 18,
+                    fontStyle: 'italic', fontWeight: 500, color: '#1A1A1A',
                     margin: 0,
                   }}>
                     {ev.couple_name}
                   </p>
                   <p style={{
-                    fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#9a9a97', margin: 0,
+                    fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#9B9B9B', margin: 0,
                   }}>
                     {ev.couple_email || '—'}
                   </p>
                 </div>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 12, color: '#6e6968', margin: 0, whiteSpace: 'nowrap' }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B6B6B', margin: 0, whiteSpace: 'nowrap' }}>
                   {new Date(ev.event_date).toLocaleDateString('fr-FR')}
                 </p>
                 {statusPill(status)}
-                <span style={{ color: '#b3aeac', fontSize: 14 }}>→</span>
+                <span style={{ color: '#9B9B9B', fontSize: 14 }}>→</span>
               </a>
             )
           })

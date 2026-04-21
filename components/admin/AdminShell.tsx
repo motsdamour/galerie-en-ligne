@@ -141,15 +141,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   /* ─── LOGIN SCREEN ─── */
   if (!token) return (
-    <div style={{ minHeight: '100vh', background: '#fff8f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'white', border: '1px solid #f0e6e0', borderRadius: 16, padding: 40, width: '100%', maxWidth: 380, textAlign: 'center' }}>
-        <p style={{ fontSize: 10, letterSpacing: '0.16em', color: '#E98172', textTransform: 'uppercase', fontFamily: "'Poppins', sans-serif", marginBottom: 8 }}>Back-office</p>
-        <h1 style={{ fontSize: 22, fontStyle: 'italic', fontFamily: "'Cormorant Garamond', serif", marginBottom: 32, color: '#3c3c3b' }}>Mots d&apos;Amour</h1>
+    <div style={{ minHeight: '100vh', background: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'white', border: '1px solid #E8E4DF', borderRadius: 16, padding: 40, width: '100%', maxWidth: 380, textAlign: 'center' }}>
+        <p style={{ fontSize: 10, letterSpacing: '0.16em', color: '#8B7355', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", marginBottom: 8 }}>Back-office</p>
+        <h1 style={{ fontSize: 22, fontStyle: 'italic', fontFamily: "'Playfair Display', serif", marginBottom: 32, color: '#1A1A1A' }}>Galerie en ligne</h1>
         <form onSubmit={login}>
           <input type="password" placeholder="Mot de passe admin" value={password} onChange={e => setPassword(e.target.value)}
-            style={{ marginBottom: 12, width: '100%', padding: '10px 14px', border: '1px solid #f0e6e0', borderRadius: 6, fontSize: 14, fontFamily: "'Poppins', sans-serif", color: '#3c3c3b', outline: 'none' }} required />
-          {loginError && <p style={{ fontSize: 12, color: '#E98172', fontFamily: "'Poppins', sans-serif", marginBottom: 12 }}>{loginError}</p>}
-          <button type="submit" style={{ width: '100%', background: '#E98172', color: 'white', border: 'none', borderRadius: 20, padding: '10px 24px', fontSize: 12, fontFamily: "'Poppins', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>Accéder</button>
+            style={{ marginBottom: 12, width: '100%', padding: '10px 14px', border: '1px solid #E8E4DF', borderRadius: 6, fontSize: 14, fontFamily: "'Inter', sans-serif", color: '#1A1A1A', outline: 'none' }} required />
+          {loginError && <p style={{ fontSize: 12, color: '#c0524c', fontFamily: "'Inter', sans-serif", marginBottom: 12 }}>{loginError}</p>}
+          <button type="submit" style={{ width: '100%', background: '#2C2C2C', color: 'white', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 12, fontFamily: "'Inter', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>Accéder</button>
         </form>
       </div>
     </div>
@@ -163,7 +163,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   /* ─── NAV ITEM RENDERER ─── */
   function NavItem({ item }: { item: typeof NAV_ITEMS[0] }) {
     const active = isActive(item.href)
-    const iconColor = active ? '#E98172' : '#b3aeac'
+    const iconColor = active ? '#2C2C2C' : '#9B9B9B'
     return (
       <a
         href={item.href}
@@ -174,12 +174,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           padding: '9px 14px',
           borderRadius: 10,
           textDecoration: 'none',
-          fontFamily: "'Poppins', sans-serif",
+          fontFamily: "'Inter', sans-serif",
           fontSize: 13.5,
           fontWeight: active ? 600 : 500,
-          color: active ? '#E98172' : '#6e6968',
+          color: active ? '#2C2C2C' : '#6B6B6B',
           background: active ? '#fff' : 'transparent',
-          boxShadow: active ? '0 2px 10px -4px rgba(60,60,59,.08)' : 'none',
+          boxShadow: active ? '0 2px 10px -4px rgba(0,0,0,.08)' : 'none',
           marginBottom: 2,
           transition: 'all 0.15s ease',
         }}
@@ -188,8 +188,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <span style={{ flex: 1 }}>{item.label}</span>
         {'badge' in item && item.badge && events.length > 0 && (
           <span style={{
-            background: active ? '#E98172' : '#f0e6e0',
-            color: active ? 'white' : '#6e6968',
+            background: active ? '#2C2C2C' : '#E8E4DF',
+            color: active ? 'white' : '#6B6B6B',
             fontSize: 10.5,
             fontWeight: 600,
             borderRadius: 999,
@@ -213,13 +213,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       loadUsers: () => fetchUsers(token),
       logout,
     }}>
-      <div style={{ display: 'flex', minHeight: '100vh', background: '#fff8f5' }}>
+      <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAF8' }}>
         {/* ─── SIDEBAR ─── */}
         <aside style={{
           width: 248,
           minWidth: 248,
-          background: '#fff8f5',
-          borderRight: '1px solid #f0e6e0',
+          background: '#FAFAF8',
+          borderRight: '1px solid #E8E4DF',
           display: 'flex',
           flexDirection: 'column',
           position: 'sticky',
@@ -230,23 +230,23 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           {/* Logo */}
           <div style={{ padding: '28px 22px 20px' }}>
             <h2 style={{
-              fontFamily: "'Cormorant Garamond', serif",
+              fontFamily: "'Playfair Display', serif",
               fontSize: 30,
               fontWeight: 500,
               fontStyle: 'italic',
-              color: '#3c3c3b',
+              color: '#1A1A1A',
               margin: 0,
               lineHeight: 1.15,
             }}>
-              Mots d&apos;amour
+              Galerie en ligne
             </h2>
             <p style={{
-              fontFamily: "'Poppins', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 10.5,
               fontWeight: 500,
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              color: '#9a9a97',
+              color: '#9B9B9B',
               marginTop: 3,
             }}>
               Studio admin
@@ -256,12 +256,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           {/* Main nav */}
           <nav style={{ flex: 1, padding: '0 12px' }}>
             <p style={{
-              fontFamily: "'Poppins', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 10,
               fontWeight: 600,
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              color: '#b3aeac',
+              color: '#9B9B9B',
               padding: '18px 14px 10px',
               margin: 0,
             }}>
@@ -271,60 +271,18 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
             {/* Compte section */}
             <p style={{
-              fontFamily: "'Poppins', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 10,
               fontWeight: 600,
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              color: '#b3aeac',
+              color: '#9B9B9B',
               padding: '26px 14px 10px',
               margin: 0,
             }}>
               Compte
             </p>
             {ACCOUNT_ITEMS.map(item => <NavItem key={item.href} item={item as any} />)}
-
-            {/* Espace réservations */}
-            <p style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              color: '#b3aeac',
-              padding: '22px 14px 10px',
-              margin: 0,
-            }}>
-              Espace réservations
-            </p>
-            <a
-              href="https://mda-dashboard.vercel.app/dashboard"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '11px 14px',
-                borderRadius: 12,
-                background: '#fff3f0',
-                border: '1px solid #f0e6e0',
-                textDecoration: 'none',
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#E98172',
-                margin: '0 2px',
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E98172" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>
-              </svg>
-              <span style={{ flex: 1 }}>Dashboard réservations</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E98172" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 17L17 7"/><path d="M7 7h10v10"/>
-              </svg>
-            </a>
           </nav>
 
           {/* Footer user */}
@@ -332,7 +290,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             margin: '12px',
             padding: '14px 14px',
             background: 'white',
-            border: '1px solid #f0e6e0',
+            border: '1px solid #E8E4DF',
             borderRadius: 12,
             display: 'flex',
             alignItems: 'center',
@@ -342,22 +300,22 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               width: 36,
               height: 36,
               borderRadius: 999,
-              background: '#E98172',
+              background: '#2C2C2C',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontFamily: "'Cormorant Garamond', serif",
+              fontFamily: "'Playfair Display', serif",
               fontSize: 17,
               fontWeight: 500,
               fontStyle: 'italic',
               flexShrink: 0,
             }}>
-              C
+              A
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 13, fontWeight: 600, color: '#3c3c3b', margin: 0, lineHeight: 1.3 }}>Christian</p>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: 11, color: '#9a9a97', margin: 0, lineHeight: 1.3 }}>Administrateur</p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#1A1A1A', margin: 0, lineHeight: 1.3 }}>Admin</p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9B9B9B', margin: 0, lineHeight: 1.3 }}>Administrateur</p>
             </div>
             <button
               onClick={logout}
@@ -367,7 +325,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 border: 'none',
                 cursor: 'pointer',
                 padding: 4,
-                color: '#b3aeac',
+                color: '#9B9B9B',
                 display: 'flex',
                 alignItems: 'center',
               }}
@@ -380,7 +338,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </aside>
 
         {/* ─── MAIN CONTENT ─── */}
-        <main style={{ flex: 1, minWidth: 0, background: '#fff8f5' }}>
+        <main style={{ flex: 1, minWidth: 0, background: '#FAFAF8' }}>
           {children}
         </main>
       </div>

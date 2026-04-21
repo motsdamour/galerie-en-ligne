@@ -1,22 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 :root {
-  --rose: #e97872;
-  --rose-light: #f4dde4;
-  --rose-dark: #c0524c;
-  --cream: #ffffff;
-  --cream-dark: #f5f5f5;
-  --brown-muted: #888780;
-  --brown-light: #b4b2a9;
-  --text-dark: #3c3c3b;
-  --border: #e8e0d8;
+  --accent: #2C2C2C;
+  --accent-light: #8B7355;
+  --bg: #FAFAF8;
+  --bg-dark: #F0EDE8;
+  --ink: #1A1A1A;
+  --ink-soft: #6B6B6B;
+  --mute: #9B9B9B;
+  --border: #E8E4DF;
+  --border-soft: #F0EDE8;
+  --white: #FFFFFF;
 }
 
 body {
-  background: var(--cream);
-  color: var(--text-dark);
-  font-family: 'Poppins', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
   font-size: 16px;
   font-weight: 300;
   line-height: 20px;
@@ -24,21 +25,21 @@ body {
 
 .btn-rose {
   background: transparent;
-  border: 0.5px solid var(--rose);
-  color: var(--rose);
+  border: 0.5px solid var(--accent);
+  color: var(--accent);
   padding: 8px 20px;
   border-radius: 20px;
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Inter', sans-serif;
   transition: background 0.15s, color 0.15s;
 }
-.btn-rose:hover { background: var(--rose); color: white; }
+.btn-rose:hover { background: var(--accent); color: white; }
 
 .btn-rose-solid {
-  background: var(--rose);
+  background: var(--accent);
   border: none;
   color: white;
   padding: 10px 24px;
@@ -47,21 +48,22 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Inter', sans-serif;
   transition: opacity 0.15s;
 }
 .btn-rose-solid:hover { opacity: 0.85; }
 
 .ornament { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 20px 0; }
-.ornament-line { width: 40px; height: 0.5px; background: var(--rose); opacity: 0.4; }
-.ornament-diamond { width: 5px; height: 5px; background: var(--rose); transform: rotate(45deg); opacity: 0.5; }
+.ornament-line { width: 40px; height: 0.5px; background: var(--accent-light); opacity: 0.4; }
+.ornament-diamond { width: 5px; height: 5px; background: var(--accent-light); transform: rotate(45deg); opacity: 0.5; }
 
 /* Couple name hero title */
 .gallery-couple-name {
   font-size: 24px;
-  font-weight: 700;
-  font-family: 'Poppins', sans-serif;
-  color: #3c3c3b;
+  font-weight: 500;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  color: #1A1A1A;
   margin: 0;
 }
 @media (min-width: 641px) {
@@ -156,10 +158,10 @@ input[type="text"], input[type="password"], input[type="email"], input[type="dat
   border-radius: 6px;
   padding: 10px 14px;
   font-size: 14px;
-  font-family: 'Poppins', sans-serif;
-  color: var(--text-dark);
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
   width: 100%;
   outline: none;
   transition: border-color 0.15s;
 }
-input:focus, select:focus, textarea:focus { border-color: var(--rose); }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }

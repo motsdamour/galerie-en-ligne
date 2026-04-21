@@ -1,11 +1,11 @@
 {
-  "name": "Mots d'Amour",
-  "short_name": "Mots d'Amour",
-  "description": "Retrouvez vos souvenirs de mariage",
+  "name": "Galerie en ligne",
+  "short_name": "Galerie",
+  "description": "Votre galerie video privee",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#e97872",
+  "background_color": "#FAFAF8",
+  "theme_color": "#2C2C2C",
   "orientation": "portrait",
   "icons": [
     {

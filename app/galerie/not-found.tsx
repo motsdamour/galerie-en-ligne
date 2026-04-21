@@ -7,7 +7,7 @@ export default function GalleryNotFound() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--cream)',
+        background: '#FAFAF8',
         padding: '2rem',
         textAlign: 'center',
       }}
@@ -15,20 +15,20 @@ export default function GalleryNotFound() {
       <p
         style={{
           fontSize: '1.6rem',
-          fontWeight: 300,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: 'var(--rose)',
+          fontWeight: 500,
+          fontStyle: 'italic',
+          fontFamily: "'Playfair Display', serif",
+          color: '#1A1A1A',
           marginBottom: '1.5rem',
         }}
       >
-        Mots d&apos;Amour
+        Galerie en ligne
       </p>
 
       <p
         style={{
           fontStyle: 'italic',
-          color: 'var(--brown-muted)',
+          color: '#6B6B6B',
           fontSize: '1rem',
           marginBottom: '2.5rem',
           maxWidth: '400px',
@@ -39,20 +39,20 @@ export default function GalleryNotFound() {
       </p>
 
       <a
-        href="https://mots-damour.fr"
+        href="https://galerie-en-ligne.fr"
         style={{
           display: 'inline-block',
-          border: '0.5px solid var(--rose)',
-          color: 'var(--rose)',
+          border: '0.5px solid #2C2C2C',
+          color: '#2C2C2C',
           padding: '10px 28px',
-          borderRadius: '20px',
+          borderRadius: '8px',
           fontSize: '11px',
           letterSpacing: '0.06em',
           textTransform: 'uppercase',
           textDecoration: 'none',
         }}
       >
-        Retour à mots-damour.fr
+        Retour à galerie-en-ligne.fr
       </a>
     </div>
   )

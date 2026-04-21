@@ -27,7 +27,7 @@ export async function GET(
     return new NextResponse('Evenement introuvable', { status: 404 })
   }
 
-  const galleryUrl = `https://galerie.mots-damour.fr/galerie/${event.slug}`
+  const galleryUrl = `https://galerie-en-ligne.fr/galerie/${event.slug}`
 
   const pngBuffer = await QRCode.toBuffer(galleryUrl, {
     type: 'png',

@@ -7,9 +7,9 @@ export default function StatistiquesPage() {
       minHeight: 400, padding: '0 36px',
     }}>
       <p style={{
-        fontFamily: "'Cormorant Garamond', serif",
+        fontFamily: "'Playfair Display', serif",
         fontSize: 28, fontStyle: 'italic', fontWeight: 500,
-        color: '#9a9a97',
+        color: '#9B9B9B',
       }}>
         Statistiques — bientôt disponible
       </p>

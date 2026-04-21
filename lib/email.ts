@@ -17,7 +17,7 @@ export async function sendNewGalleryEmail(event: {
 }) {
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return
 
-  const galleryUrl = `https://galerie.mots-damour.fr/galerie/${event.slug}`
+  const galleryUrl = `https://galerie-en-ligne.fr/galerie/${event.slug}`
   const editorUrl = `${galleryUrl}?edit_token=${event.edit_token}`
 
   // Email admin
@@ -26,7 +26,7 @@ export async function sendNewGalleryEmail(event: {
     to: process.env.GMAIL_USER,
     subject: `Nouvelle galerie — ${event.couple_name}`,
     html: `
-      <h2>Nouvelle galerie Mots d'Amour</h2>
+      <h2>Nouvelle galerie</h2>
       <p><strong>Couple :</strong> ${event.couple_name}</p>
       <p><strong>Lien invites :</strong> <a href="${galleryUrl}">${galleryUrl}</a></p>
       <p><strong>Mot de passe :</strong> ${event.password_plain}</p>
@@ -40,9 +40,9 @@ export async function sendNewGalleryEmail(event: {
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to: event.couple_email,
-      subject: `Votre galerie Mots d'Amour est prete !`,
+      subject: `Votre galerie est prete !`,
       html: `
-        <h2>Votre galerie Mots d'Amour</h2>
+        <h2>Votre galerie de souvenirs</h2>
         <p>Bonjour ${event.couple_name},</p>
         <p>Votre galerie de souvenirs est prete !</p>
         <h3>Lien a partager a vos invites</h3>
@@ -53,7 +53,7 @@ export async function sendNewGalleryEmail(event: {
         <p><a href="${editorUrl}">${editorUrl}</a></p>
         <p><em>Ne partagez pas ce lien — il est reserve aux maries.</em></p>
         <br>
-        <p>Mots d'Amour</p>
+        <p>Galerie en ligne</p>
       `
     })
   }
