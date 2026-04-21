@@ -42,8 +42,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'PCLOUD_AUTH_TOKEN manquant' }, { status: 500 })
   }
 
-  // List root pCloud folders
-  const res = await fetch(`${PCLOUD_API}/listfolder?auth=${token}&folderid=0&recursive=0`)
+  // List pCloud folders from configured root
+  const rootFolderId = process.env.PCLOUD_ROOT_FOLDER_ID || '0'
+  const res = await fetch(`${PCLOUD_API}/listfolder?auth=${token}&folderid=${rootFolderId}&recursive=0`)
   const data = await res.json() as { result?: number; error?: string; metadata?: { contents?: any[] } }
 
   if (data.error) {
