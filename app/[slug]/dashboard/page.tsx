@@ -28,6 +28,9 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
   const [error, setError] = useState('')
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [showNewModal, setShowNewModal] = useState(false)
+  const [newForm, setNewForm] = useState({ coupleName: '', eventDate: '', coupleEmail: '', expiresDays: '90' })
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     if (sessionStatus === 'loading') return
@@ -116,6 +119,28 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
     setSendingId(null)
   }
 
+  async function createGallery(e: React.FormEvent) {
+    e.preventDefault()
+    setCreating(true)
+    try {
+      const res = await fetch(`/api/operators/${slug}/galleries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newForm),
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Erreur'); return }
+      alert(`Galerie créée !\nURL : ${data.galleryUrl}\nMot de passe : ${data.password}`)
+      setShowNewModal(false)
+      setNewForm({ coupleName: '', eventDate: '', coupleEmail: '', expiresDays: '90' })
+      // Reload galleries
+      const r = await fetch(`/api/operators/${slug}/galleries`)
+      const d = await r.json()
+      if (d) { setGalleries(d.galleries ?? []); setStats(d.stats ?? { total: 0, active: 0 }) }
+    } catch { alert('Erreur réseau') }
+    finally { setCreating(false) }
+  }
+
   function logout() {
     document.cookie = 'operator_session=; path=/; max-age=0'
     signOut({ callbackUrl: '/login' })
@@ -161,13 +186,29 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
             Espace loueur · galerie-en-ligne.fr
           </p>
         </div>
-        <button onClick={logout} style={{
-          background: 'transparent', border: '1px solid #E8E4DF', borderRadius: 8,
-          padding: '8px 16px', fontSize: 13, fontFamily: "'Inter', sans-serif",
-          cursor: 'pointer', color: '#6B6B6B', fontWeight: 500,
-        }}>
-          Déconnexion
-        </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button onClick={() => setShowNewModal(true)} style={{
+            background: '#2C2C2C', color: 'white', border: 'none', borderRadius: 8,
+            padding: '8px 18px', fontSize: 13, fontFamily: "'Inter', sans-serif",
+            cursor: 'pointer', fontWeight: 500,
+          }}>
+            + Nouvelle galerie
+          </button>
+          <a href={`/${slug}/profile`} style={{
+            background: 'transparent', border: '1px solid #E8E4DF', borderRadius: 8,
+            padding: '8px 16px', fontSize: 13, fontFamily: "'Inter', sans-serif",
+            cursor: 'pointer', color: '#6B6B6B', fontWeight: 500, textDecoration: 'none',
+          }}>
+            Profil
+          </a>
+          <button onClick={logout} style={{
+            background: 'transparent', border: '1px solid #E8E4DF', borderRadius: 8,
+            padding: '8px 16px', fontSize: 13, fontFamily: "'Inter', sans-serif",
+            cursor: 'pointer', color: '#6B6B6B', fontWeight: 500,
+          }}>
+            Déconnexion
+          </button>
+        </div>
       </header>
 
       <div style={{ padding: '32px' }}>
@@ -295,6 +336,70 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
           )}
         </div>
       </div>
+
+      {/* Modal Nouvelle galerie */}
+      {showNewModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }} onClick={() => setShowNewModal(false)}>
+          <div style={{
+            background: 'white', borderRadius: 16, padding: 36, width: '100%', maxWidth: 440,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          }} onClick={e => e.stopPropagation()}>
+            <h2 style={{
+              fontFamily: "'Playfair Display', serif", fontSize: 22, fontStyle: 'italic',
+              fontWeight: 500, color: '#1A1A1A', margin: '0 0 24px',
+            }}>
+              Nouvelle galerie
+            </h2>
+            <form onSubmit={createGallery}>
+              <label style={{ display: 'block', marginBottom: 14 }}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: 4 }}>Nom des mariés *</span>
+                <input required value={newForm.coupleName} onChange={e => setNewForm(f => ({ ...f, coupleName: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #E8E4DF', borderRadius: 8, fontSize: 14, fontFamily: "'Inter', sans-serif", outline: 'none', boxSizing: 'border-box' }} />
+              </label>
+              <label style={{ display: 'block', marginBottom: 14 }}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: 4 }}>Date *</span>
+                <input required type="date" value={newForm.eventDate} onChange={e => setNewForm(f => ({ ...f, eventDate: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #E8E4DF', borderRadius: 8, fontSize: 14, fontFamily: "'Inter', sans-serif", outline: 'none', boxSizing: 'border-box' }} />
+              </label>
+              <label style={{ display: 'block', marginBottom: 14 }}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: 4 }}>Email mariés (optionnel)</span>
+                <input type="email" value={newForm.coupleEmail} onChange={e => setNewForm(f => ({ ...f, coupleEmail: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #E8E4DF', borderRadius: 8, fontSize: 14, fontFamily: "'Inter', sans-serif", outline: 'none', boxSizing: 'border-box' }} />
+              </label>
+              <label style={{ display: 'block', marginBottom: 24 }}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#6B6B6B', display: 'block', marginBottom: 4 }}>Durée</span>
+                <select value={newForm.expiresDays} onChange={e => setNewForm(f => ({ ...f, expiresDays: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #E8E4DF', borderRadius: 8, fontSize: 14, fontFamily: "'Inter', sans-serif", outline: 'none', boxSizing: 'border-box', background: 'white' }}>
+                  <option value="30">30 jours</option>
+                  <option value="60">60 jours</option>
+                  <option value="90">90 jours</option>
+                  <option value="180">180 jours</option>
+                </select>
+              </label>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowNewModal(false)} style={{
+                  background: 'transparent', border: '1px solid #E8E4DF', borderRadius: 8,
+                  padding: '9px 20px', fontSize: 13, fontFamily: "'Inter', sans-serif",
+                  cursor: 'pointer', color: '#6B6B6B', fontWeight: 500,
+                }}>
+                  Annuler
+                </button>
+                <button type="submit" disabled={creating} style={{
+                  background: '#2C2C2C', color: 'white', border: 'none', borderRadius: 8,
+                  padding: '9px 24px', fontSize: 13, fontFamily: "'Inter', sans-serif",
+                  cursor: creating ? 'default' : 'pointer', fontWeight: 500,
+                  opacity: creating ? 0.6 : 1,
+                }}>
+                  {creating ? 'Création...' : 'Créer la galerie'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

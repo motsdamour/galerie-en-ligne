@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { verifyAdminToken } from '@/lib/auth'
+import { auth } from '@/lib/auth-config'
 
 export async function GET(
   req: NextRequest,
@@ -121,4 +122,45 @@ export async function DELETE(
   }
 
   return NextResponse.json({ success: true })
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params
+
+  // Verify auth via NextAuth session
+  const session = await auth()
+  if (!session?.user?.operatorSlug || session.user.operatorSlug !== slug) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
+  const body = await req.json()
+
+  const allowedFields = ['accent_color', 'bg_color', 'welcome_message', 'storage_limit_gb', 'type', 'logo_url', 'default_expires_days']
+  const updates: Record<string, any> = {}
+  for (const key of allowedFields) {
+    if (body[key] !== undefined) {
+      updates[key] = body[key]
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'Aucun champ à mettre à jour' }, { status: 400 })
+  }
+
+  const db = supabaseAdmin()
+  const { data, error } = await db
+    .from('operators')
+    .update(updates)
+    .eq('slug', slug)
+    .select('id, name, slug, accent_color, bg_color, welcome_message, logo_url, default_expires_days')
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(data)
 }

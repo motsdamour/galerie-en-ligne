@@ -38,9 +38,9 @@ function tabLabel(name: string): string {
   const map: Record<string, string> = {
     "photobooth": "Photos",
     "livre d'or": "Livre d'or",
-    "boite a questions": "Boîte à questions",
-    "boite à questions": "Boîte à questions",
-    "boîte à questions": "Boîte à questions",
+    "boite a questions": "Boite a questions",
+    "boite à questions": "Boite a questions",
+    "boîte à questions": "Boite a questions",
   }
   const normalized = name.toLowerCase()
   const key = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -105,7 +105,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
   // Dynamic branding
   const accent = operator?.accent_color || '#2C2C2C'
-  const bg = operator?.bg_color || '#FAFAF8'
+  const bg = operator?.bg_color || '#FFFFFF'
   const border = '#E8E4DF'
   const muted = '#6B6B6B'
   const subtle = '#9B9B9B'
@@ -120,7 +120,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         if (data.error) { setError(data.error); return }
         setEvent(data.event)
         if (data.operator) setOperator(data.operator)
-        const tabOrder: Record<string, number> = { 'Boîte à questions': 0, "Livre d'or": 1, 'Photos': 2 }
+        const tabOrder: Record<string, number> = { 'Boite a questions': 0, "Livre d'or": 1, 'Photos': 2 }
         const rawFolders: Folder[] = data.folders ?? []
         const guestFromFolders: MediaFile[] = []
         const filteredFolders = rawFolders.filter(f => {
@@ -206,7 +206,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           }
         } catch (err) {
           console.error('[UPLOAD ERROR]', err)
-          lastError = 'Erreur réseau'
+          lastError = 'Erreur reseau'
         }
         setUploadProgress(prev => ({ ...prev, done: prev.done + 1 }))
       }
@@ -273,9 +273,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
   type DropOption = { key: string; label: string; files: MediaFile[]; zipName: string }
   const dropOptions: DropOption[] = [
-    { key: 'tout', label: 'Tout télécharger', files: allFiles, zipName: `galerie-tout-${coupleName}.zip` },
+    { key: 'tout', label: 'Tout telecharger', files: allFiles, zipName: `galerie-tout-${coupleName}.zip` },
     ...(findFolder("Livre d'or") ? [{ key: 'livreOr', label: "Livre d'or seulement", files: findFolder("Livre d'or")!.videos, zipName: `galerie-livre-d-or-${coupleName}.zip` }] : []),
-    ...(findFolder('Boîte à questions') ? [{ key: 'questions', label: 'Boîte à questions seulement', files: findFolder('Boîte à questions')!.videos, zipName: `galerie-boite-questions-${coupleName}.zip` }] : []),
+    ...(findFolder('Boite a questions') ? [{ key: 'questions', label: 'Boite a questions seulement', files: findFolder('Boite a questions')!.videos, zipName: `galerie-boite-questions-${coupleName}.zip` }] : []),
     ...(findFolder('Photos') ? [{ key: 'photos', label: 'Photos seulement', files: findFolder('Photos')!.videos, zipName: `galerie-photos-${coupleName}.zip` }] : []),
   ]
 
@@ -288,11 +288,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           style={{
             display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left',
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: '10px 14px', borderRadius: '6px', fontSize: '16px', fontWeight: 300,
-            lineHeight: '20px', fontFamily: "'Inter', sans-serif", letterSpacing: '0.03em',
+            padding: '10px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 400,
+            lineHeight: '20px', fontFamily: "'Inter', sans-serif", letterSpacing: '0.01em',
             color: '#1A1A1A', minHeight: '44px',
           }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#F0EDE8')}
+          onMouseEnter={e => (e.currentTarget.style.background = '#F5F5F5')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
           {opt.label}
@@ -303,15 +303,13 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
   const dropMenuStyle: React.CSSProperties = {
     background: 'white',
-    border: `0.5px solid ${border}`,
+    border: `1px solid ${border}`,
     borderRadius: '10px',
     padding: '6px',
     zIndex: 200,
-    minWidth: '230px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.14)',
+    minWidth: '220px',
+    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
   }
-
-  const zipLabel = zipKey ? `${zipProgress.done}/${zipProgress.total}…` : 'Télécharger ▾'
 
   const lightboxItem = lightboxIndex !== null ? photoItems[lightboxIndex] : null
 
@@ -345,8 +343,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '32px', height: '32px', border: `1px solid ${accent}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }}/>
-        <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: muted, fontFamily: 'Inter, sans-serif' }}>Chargement de vos souvenirs…</p>
+        <div style={{ width: '28px', height: '28px', border: `1.5px solid ${border}`, borderTopColor: accent, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 20px' }}/>
+        <p style={{ fontSize: '13px', fontWeight: 400, color: subtle, fontFamily: 'Inter, sans-serif', letterSpacing: '0.02em' }}>Chargement...</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -354,46 +352,48 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
   if (error) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg }}>
-      <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: muted, fontFamily: 'Inter, sans-serif' }}>{error}</p>
+      <p style={{ fontSize: '14px', fontWeight: 400, color: muted, fontFamily: 'Inter, sans-serif' }}>{error}</p>
     </div>
   )
 
   return (
     <div style={{ minHeight: '100vh', background: bg, color: '#1A1A1A', overflowX: 'hidden' }}>
 
-      {/* Nav */}
-      <nav className="gallery-nav" style={{ background: bg, borderBottom: `0.5px solid ${border}` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
-          {/* Logo / brand */}
+      {/* Header */}
+      <nav className="gallery-nav" style={{ background: '#FFFFFF', borderBottom: `1px solid ${border}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Logo / brand left */}
           {operator?.logo_url ? (
-            <img src={operator.logo_url} alt={operator.name} style={{ height: '48px', maxWidth: '160px', objectFit: 'contain', display: 'block' }} />
+            <img src={operator.logo_url} alt={operator.name} style={{ height: '40px', maxWidth: '140px', objectFit: 'contain', display: 'block' }} />
           ) : (
             <span style={{
               fontFamily: "'Playfair Display', serif",
               fontStyle: 'italic',
-              fontSize: '22px',
+              fontSize: '18px',
               fontWeight: 500,
               color: '#1A1A1A',
-              letterSpacing: '-0.01em',
             }}>
-              {operator?.name || 'Galerie en ligne'}
+              {operator?.name || ''}
             </span>
           )}
 
-          {/* Download button */}
+          {/* Download button right */}
           <div ref={navDropRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setNavDropOpen(o => !o)}
               disabled={!!zipKey}
               style={{
-                background: accent, color: 'white', border: 'none',
-                padding: '8px 16px', borderRadius: '8px', fontSize: '16px', fontWeight: 400,
-                lineHeight: '20px', letterSpacing: '0.05em', textTransform: 'uppercase', cursor: zipKey ? 'default' : 'pointer',
-                fontFamily: "'Inter', sans-serif", opacity: zipKey ? 0.7 : 1,
-                minHeight: '36px', whiteSpace: 'nowrap',
+                background: 'transparent', color: '#1A1A1A', border: 'none',
+                padding: '8px 0', fontSize: '13px', fontWeight: 400,
+                letterSpacing: '0.04em', cursor: zipKey ? 'default' : 'pointer',
+                fontFamily: "'Inter', sans-serif", opacity: zipKey ? 0.5 : 1,
+                display: 'flex', alignItems: 'center', gap: '6px',
               }}
             >
-              {zipLabel}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              {zipKey ? `${zipProgress.done}/${zipProgress.total}...` : 'Telecharger'}
             </button>
             {navDropOpen && (
               <div style={{ ...dropMenuStyle, position: 'absolute', top: 'calc(100% + 6px)', right: 0 }}>
@@ -406,7 +406,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
       {/* Edit mode badge */}
       {isEditor && (
-        <div style={{ background: accent, color: 'white', textAlign: 'center', padding: '8px', fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: 'Inter, sans-serif', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <div style={{ background: accent, color: 'white', textAlign: 'center', padding: '8px', fontSize: '12px', fontWeight: 500, fontFamily: 'Inter, sans-serif', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           Mode edition — cliquez sur le bouton masquer pour retirer un media
         </div>
       )}
@@ -415,83 +415,92 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       <div className="gallery-hero" style={{ textAlign: 'center' }}>
         {event && (
           <>
-            <h1 className="gallery-couple-name" style={{ color: '#1A1A1A', marginBottom: '6px' }}>
+            <h1 className="gallery-couple-name" style={{ color: '#1A1A1A', marginBottom: '8px' }}>
               {event.coupleName}
             </h1>
             {event.expiresAt && (
-              <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: subtle, fontFamily: "'Inter', sans-serif", margin: '0 0 10px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 400, color: subtle, fontFamily: "'Inter', sans-serif", margin: '0 0 16px', letterSpacing: '0.01em' }}>
                 Galerie disponible encore {Math.max(0, Math.ceil((new Date(event.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} jours
               </p>
             )}
           </>
         )}
-        <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', letterSpacing: '0.18em', color: '#8B7355', textTransform: 'uppercase', marginBottom: '10px' }}>
-          {totalVideos} souvenir{totalVideos > 1 ? 's' : ''} partagé{totalVideos > 1 ? 's' : ''} avec amour
-        </p>
         <button
           onClick={() => setShareOpen(true)}
           style={{
-            background: 'white', border: `1px solid ${accent}`, color: accent, fontWeight: 400,
-            padding: '8px 24px', borderRadius: '8px', fontSize: '16px', cursor: 'pointer',
-            fontFamily: "'Inter', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase',
-            lineHeight: '20px',
-            marginTop: '12px',
+            background: 'transparent', border: 'none', color: subtle,
+            fontSize: '13px', fontWeight: 400, cursor: 'pointer',
+            fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '6px 0',
           }}
         >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
           Partager
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '18px' }}>
-          <div style={{ width: '40px', height: '0.5px', background: '#8B7355', opacity: 0.4 }}/>
-          <div style={{ width: '5px', height: '5px', background: '#8B7355', transform: 'rotate(45deg)', opacity: 0.5 }}/>
-          <div style={{ width: '40px', height: '0.5px', background: '#8B7355', opacity: 0.4 }}/>
-        </div>
       </div>
 
-      {/* Tabs — only show folders with content + guest tab if has media */}
+      {/* Tabs */}
       <div className="gallery-tabs-area">
         {(folders.length > 1 || visibleGuestMedia.length > 0) && (
           <div className="tabs-scroll">
-            {folders.map((folder, i) => (
-              <button
-                key={folder.folderid}
-                onClick={() => { setActiveTab(i); setShowGuestTab(false) }}
-                style={{
-                  flexShrink: 0,
-                  background: !showGuestTab && activeTab === i ? accent : 'transparent',
-                  color: !showGuestTab && activeTab === i ? 'white' : muted,
-                  border: `0.5px solid ${!showGuestTab && activeTab === i ? accent : border}`,
-                  borderRadius: '8px', padding: '8px 20px',
-                  fontSize: !showGuestTab && activeTab === i ? '24px' : '16px',
-                  fontWeight: !showGuestTab && activeTab === i ? 600 : 300,
-                  lineHeight: '20px',
-                  fontFamily: "'Inter', sans-serif", cursor: 'pointer',
-                  letterSpacing: '0.04em', transition: 'all 0.15s', minHeight: '44px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {tabLabel(folder.name)}
-                <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({folder.videos.length})</span>
-              </button>
-            ))}
+            {folders.map((folder, i) => {
+              const isActive = !showGuestTab && activeTab === i
+              return (
+                <button
+                  key={folder.folderid}
+                  onClick={() => { setActiveTab(i); setShowGuestTab(false) }}
+                  style={{
+                    flexShrink: 0,
+                    background: 'transparent',
+                    color: isActive ? '#1A1A1A' : subtle,
+                    border: 'none',
+                    borderBottom: isActive ? '2px solid #1A1A1A' : '2px solid transparent',
+                    borderRadius: 0,
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    fontWeight: isActive ? 600 : 400,
+                    lineHeight: '20px',
+                    fontFamily: "'Inter', sans-serif",
+                    cursor: 'pointer',
+                    letterSpacing: '0.01em',
+                    transition: 'all 0.15s',
+                    minHeight: '40px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {tabLabel(folder.name)}
+                  <sup style={{ marginLeft: '3px', fontSize: '10px', opacity: 0.5, fontWeight: 400 }}>{folder.videos.length}</sup>
+                </button>
+              )
+            })}
             {visibleGuestMedia.length > 0 && (
               <button
                 onClick={() => setShowGuestTab(true)}
                 style={{
                   flexShrink: 0,
-                  background: showGuestTab ? accent : 'transparent',
-                  color: showGuestTab ? 'white' : muted,
-                  border: `0.5px solid ${showGuestTab ? accent : border}`,
-                  borderRadius: '8px', padding: '8px 20px',
-                  fontSize: showGuestTab ? '24px' : '16px',
-                  fontWeight: showGuestTab ? 600 : 300,
+                  background: 'transparent',
+                  color: showGuestTab ? '#1A1A1A' : subtle,
+                  border: 'none',
+                  borderBottom: showGuestTab ? '2px solid #1A1A1A' : '2px solid transparent',
+                  borderRadius: 0,
+                  padding: '8px 16px',
+                  fontSize: '14px',
+                  fontWeight: showGuestTab ? 600 : 400,
                   lineHeight: '20px',
-                  fontFamily: "'Inter', sans-serif", cursor: 'pointer',
-                  letterSpacing: '0.04em', transition: 'all 0.15s', minHeight: '44px',
+                  fontFamily: "'Inter', sans-serif",
+                  cursor: 'pointer',
+                  letterSpacing: '0.01em',
+                  transition: 'all 0.15s',
+                  minHeight: '40px',
                   whiteSpace: 'nowrap',
                 }}
               >
-                Photos & vidéos invités
-                <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({visibleGuestMedia.length})</span>
+                Photos & videos invites
+                <sup style={{ marginLeft: '3px', fontSize: '10px', opacity: 0.5, fontWeight: 400 }}>{visibleGuestMedia.length}</sup>
               </button>
             )}
           </div>
@@ -512,30 +521,31 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       ) : (
         <div className="gallery-content" style={{ padding: '20px' }}>
           {/* Upload zone */}
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
             <button
               type="button"
               onClick={triggerUpload}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
-                background: accent, color: 'white', padding: '12px 28px',
-                borderRadius: '8px', fontSize: '16px', fontWeight: 400, lineHeight: '20px', fontFamily: "'Inter', sans-serif",
-                letterSpacing: '0.06em', textTransform: 'uppercase', cursor: uploading ? 'default' : 'pointer',
-                opacity: uploading ? 0.6 : 1, border: 'none',
+                background: 'transparent', color: accent, padding: '10px 24px',
+                borderRadius: '8px', fontSize: '13px', fontWeight: 500, fontFamily: "'Inter', sans-serif",
+                letterSpacing: '0.04em', textTransform: 'uppercase', cursor: uploading ? 'default' : 'pointer',
+                opacity: uploading ? 0.5 : 1, border: `1.5px solid ${accent}`,
+                transition: 'all 0.15s',
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
               {uploading ? `${uploadProgress.done}/${uploadProgress.total}...` : 'Ajouter photos & videos'}
             </button>
             {uploadSuccess && (
-              <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#0f6e56', fontFamily: "'Inter', sans-serif", marginTop: '12px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 400, color: '#0f6e56', fontFamily: "'Inter', sans-serif", marginTop: '12px' }}>
                 Photos ajoutees avec succes !
               </p>
             )}
             {uploadError && (
-              <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#c0524c', fontFamily: "'Inter', sans-serif", marginTop: '12px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 400, color: '#c0524c', fontFamily: "'Inter', sans-serif", marginTop: '12px' }}>
                 {uploadError}
               </p>
             )}
@@ -559,7 +569,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                   })}
                 </div>
                 {displayGuest.length === 0 && !uploading && (
-                  <p style={{ textAlign: 'center', fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: muted, fontFamily: "'Inter', sans-serif", marginTop: '20px' }}>
+                  <p style={{ textAlign: 'center', fontSize: '14px', fontWeight: 400, color: subtle, fontFamily: "'Inter', sans-serif", marginTop: '24px' }}>
                     Aucun media pour l'instant. Soyez le premier a partager vos souvenirs !
                   </p>
                 )}
@@ -572,22 +582,23 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       {/* Share modal */}
       {shareOpen && (() => {
         const galleryLink = `${window.location.origin}/galerie/${slug}`
-        const shareBtnStyle: React.CSSProperties = {
-          width: '100%', padding: '12px', border: 'none', borderRadius: '12px',
-          fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: "'Inter', sans-serif", cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-          color: 'white', marginBottom: '8px',
-        }
         return (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}
             onClick={() => setShareOpen(false)}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '400px', width: '90%', position: 'relative' }}>
-              <button onClick={() => setShareOpen(false)} style={{ position: 'absolute', top: '12px', right: '16px', background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: muted }}>x</button>
-              <h3 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '20px', color: '#1A1A1A', fontFamily: "'Inter', sans-serif" }}>Partager la galerie</h3>
+            <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '380px', width: '90%', position: 'relative' }}>
+              <button onClick={() => setShareOpen(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: subtle, lineHeight: 1, padding: '4px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '24px', color: '#1A1A1A', fontFamily: "'Inter', sans-serif" }}>Partager la galerie</h3>
 
               {/* WhatsApp */}
               <a href={`https://wa.me/?text=${encodeURIComponent(`Retrouvez nos souvenirs sur ${galleryLink}`)}`}
-                target="_blank" rel="noopener" style={{ ...shareBtnStyle, background: '#25D366', textDecoration: 'none' }}>
+                target="_blank" rel="noopener" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                  width: '100%', padding: '12px', border: 'none', borderRadius: '10px',
+                  fontSize: '14px', fontWeight: 500, fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+                  color: 'white', background: '#25D366', textDecoration: 'none', marginBottom: '10px',
+                }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.122 1.527 5.853L.06 23.64l5.897-1.547A11.93 11.93 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.998 0-3.877-.537-5.49-1.474l-.394-.234-4.084 1.071 1.09-3.981-.256-.407A9.788 9.788 0 0 1 2.18 12c0-5.422 4.398-9.82 9.82-9.82 5.422 0 9.82 4.398 9.82 9.82 0 5.422-4.398 9.82-9.82 9.82z"/></svg>
                 WhatsApp
               </a>
@@ -596,10 +607,15 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               <button onClick={() => {
                 navigator.clipboard.writeText(galleryLink)
                 setShareOpen(false)
-                setToast('Lien copié !')
+                setToast('Lien copie !')
                 setTimeout(() => setToast(null), 4000)
-              }} style={{ ...shareBtnStyle, background: accent }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              }} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                width: '100%', padding: '12px', borderRadius: '10px',
+                fontSize: '14px', fontWeight: 500, fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+                color: accent, background: 'transparent', border: `1.5px solid ${accent}`,
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 Copier le lien
               </button>
             </div>
@@ -614,34 +630,59 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)',
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)',
             zIndex: 1000, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <button onClick={() => setLightboxIndex(null)} style={{ position: 'absolute', top: '16px', right: '20px', background: 'transparent', border: 'none', color: 'white', fontSize: '28px', lineHeight: 1, cursor: 'pointer', padding: '8px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-
+          {/* Counter top center */}
           {photoItems.length > 1 && (
-            <button onClick={handleLightboxPrev} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
-          )}
-          {photoItems.length > 1 && (
-            <button onClick={handleLightboxNext} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>›</button>
+            <div style={{ position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', color: 'white', opacity: 0.6, fontSize: '12px', fontFamily: 'Inter, sans-serif', fontWeight: 400, letterSpacing: '0.05em' }}>
+              {(lightboxIndex ?? 0) + 1} / {photoItems.length}
+            </div>
           )}
 
-          <img src={lightboxItem.streamUrl} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '4px', display: 'block' }} />
+          {/* Close button */}
+          <button onClick={() => setLightboxIndex(null)} style={{ position: 'absolute', top: '16px', right: '20px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '8px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.8 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+
+          {/* Left arrow */}
+          {photoItems.length > 1 && (
+            <button onClick={handleLightboxPrev} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '12px', opacity: 0.7, minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+          )}
+
+          {/* Right arrow */}
+          {photoItems.length > 1 && (
+            <button onClick={handleLightboxNext} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '12px', opacity: 0.7, minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          )}
+
+          <img src={lightboxItem.streamUrl} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', display: 'block' }} />
+
+          {/* Download bottom center */}
           <a
             href={`/api/proxy/${lightboxItem.id}?download=1&filename=${encodeURIComponent(lightboxItem.name)}`}
             download={lightboxItem.name}
             onClick={e => e.stopPropagation()}
             style={{
-              marginTop: '16px', background: accent, color: 'white',
-              padding: '10px 28px', borderRadius: '8px', fontSize: '16px', fontWeight: 400,
-              lineHeight: '20px', textTransform: 'uppercase', letterSpacing: '0.06em',
+              position: 'absolute', bottom: '28px', left: '50%', transform: 'translateX(-50%)',
+              background: 'transparent', color: 'white',
+              padding: '8px 24px', borderRadius: '8px', fontSize: '12px', fontWeight: 500,
+              letterSpacing: '0.06em', textTransform: 'uppercase',
               fontFamily: "'Inter', sans-serif", textDecoration: 'none',
-              minHeight: '44px', display: 'flex', alignItems: 'center',
+              border: '1px solid rgba(255,255,255,0.4)',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              minHeight: '40px', transition: 'border-color 0.15s',
             }}
           >
-            Télécharger
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Telecharger
           </a>
         </div>
       )}
@@ -649,31 +690,90 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       {/* Toast */}
       {toast && (
         <div style={{
-          position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-          background: '#1c1c1c', color: 'white', padding: '12px 20px', borderRadius: '12px',
-          fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: "'Inter', sans-serif", zIndex: 2000,
-          maxWidth: '90vw', textAlign: 'center', animation: 'fadeInOut 6s ease',
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          background: '#1A1A1A', color: 'white', padding: '10px 20px', borderRadius: '8px',
+          fontSize: '13px', fontWeight: 500, fontFamily: "'Inter', sans-serif", zIndex: 2000,
+          maxWidth: '90vw', textAlign: 'center', animation: 'fadeInOut 4s ease',
+          letterSpacing: '0.01em',
         }}>
           {toast}
         </div>
       )}
-      <style>{`@keyframes fadeInOut { 0% { opacity: 0; } 8% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }`}</style>
+      <style>{`@keyframes fadeInOut { 0% { opacity: 0; transform: translateX(-50%) translateY(8px); } 10% { opacity: 1; transform: translateX(-50%) translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; } }`}</style>
     </div>
   )
 }
 
 function VideoCard({ item, accent, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; accent: string; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  const [playing, setPlaying] = useState(false)
+
   return (
-    <div style={{ width: '100%', position: 'relative', opacity: isHidden ? 0.4 : 1 }}>
-      <video controls={!isHidden} playsInline preload="metadata" src={`/api/proxy/${item.id}`} poster={`/api/proxy/${item.id}?thumb=1`} style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }} />
-      {!isHidden && (
-        <a href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}.mp4`} download style={{ display: 'block', width: '100%', marginTop: '8px', padding: '8px 0', background: accent, color: 'white', border: 'none', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '16px', fontWeight: 400, lineHeight: '20px', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', textDecoration: 'none', cursor: 'pointer' }}>Telecharger</a>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ width: '100%', position: 'relative', opacity: isHidden ? 0.35 : 1, borderRadius: '12px', overflow: 'hidden' }}
+    >
+      {!playing ? (
+        <div
+          onClick={() => !isHidden && setPlaying(true)}
+          style={{ position: 'relative', cursor: isHidden ? 'default' : 'pointer', aspectRatio: '9/16', background: '#111' }}
+        >
+          <img
+            src={`/api/proxy/${item.id}?thumb=1`}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+          {/* Hover overlay */}
+          {hovered && !isHidden && (
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', transition: 'opacity 0.15s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              {/* Play icon */}
+              <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="8,5 20,12 8,19"/></svg>
+              </div>
+              {/* Download at bottom */}
+              <a
+                href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}.mp4`}
+                download
+                onClick={e => e.stopPropagation()}
+                style={{
+                  position: 'absolute', bottom: '12px', left: '12px', right: '12px',
+                  background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)',
+                  color: 'white', border: 'none', borderRadius: '8px',
+                  padding: '8px 0', fontSize: '11px', fontWeight: 500,
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                  fontFamily: 'Inter, sans-serif', textAlign: 'center', textDecoration: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Telecharger
+              </a>
+            </div>
+          )}
+        </div>
+      ) : (
+        <video
+          controls
+          autoPlay
+          playsInline
+          preload="metadata"
+          src={`/api/proxy/${item.id}`}
+          poster={`/api/proxy/${item.id}?thumb=1`}
+          style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', display: 'block', background: '#111' }}
+        />
       )}
+
+      {/* Editor controls */}
       {isEditor && !isHidden && (
-        <button onClick={onHide} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Masquer">X</button>
+        <button onClick={onHide} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }} title="Masquer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       )}
       {isEditor && isHidden && (
-        <button onClick={onUnhide} style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: accent, color: 'white', border: 'none', borderRadius: '8px', padding: '8px 20px', fontSize: '16px', fontWeight: 400, lineHeight: '20px', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>Restaurer</button>
+        <button onClick={onUnhide} style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: accent, color: 'white', border: 'none', borderRadius: '8px', padding: '8px 20px', fontSize: '12px', fontWeight: 500, fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', zIndex: 10 }}>Restaurer</button>
       )}
     </div>
   )
@@ -682,18 +782,27 @@ function VideoCard({ item, accent, isEditor, isHidden, onHide, onUnhide }: { ite
 function PhotoCard({ item, accent, onOpen, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; accent: string; onOpen: () => void; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
   const [hovered, setHovered] = useState(false)
   return (
-    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onClick={onOpen} style={{ position: 'relative', aspectRatio: '9/16', borderRadius: '10px', overflow: 'hidden', cursor: isHidden ? 'default' : 'pointer', width: '100%', opacity: isHidden ? 0.4 : 1 }}>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onOpen}
+      style={{ position: 'relative', aspectRatio: '3/4', borderRadius: '12px', overflow: 'hidden', cursor: isHidden ? 'default' : 'pointer', width: '100%', opacity: isHidden ? 0.35 : 1 }}
+    >
       <img src={item.streamUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
       {hovered && !isHidden && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.15s' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
         </div>
       )}
       {isEditor && !isHidden && (
-        <button onClick={e => { e.stopPropagation(); onHide() }} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }} title="Masquer">X</button>
+        <button onClick={e => { e.stopPropagation(); onHide() }} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }} title="Masquer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       )}
       {isEditor && isHidden && (
-        <button onClick={e => { e.stopPropagation(); onUnhide() }} style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: accent, color: 'white', border: 'none', borderRadius: '8px', padding: '8px 20px', fontSize: '16px', fontWeight: 400, lineHeight: '20px', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', zIndex: 10 }}>Restaurer</button>
+        <button onClick={e => { e.stopPropagation(); onUnhide() }} style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: accent, color: 'white', border: 'none', borderRadius: '8px', padding: '8px 20px', fontSize: '12px', fontWeight: 500, fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', zIndex: 10 }}>Restaurer</button>
       )}
     </div>
   )

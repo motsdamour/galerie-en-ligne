@@ -59,7 +59,7 @@ body {
 
 /* Couple name hero title */
 .gallery-couple-name {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 500;
   font-family: 'Playfair Display', serif;
   font-style: italic;
@@ -67,7 +67,7 @@ body {
   margin: 0;
 }
 @media (min-width: 641px) {
-  .gallery-couple-name { font-size: 24px; }
+  .gallery-couple-name { font-size: 36px; }
 }
 
 /* Nav */
@@ -126,14 +126,14 @@ body {
   .gallery-footer { padding: 16px 32px; }
 }
 
-/* Video grid: 1 col mobile → 2 col tablet → 4 col desktop */
+/* Video grid: 2 col mobile → 3 col tablet → 4 col desktop */
 .gallery-grid-video {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 @media (min-width: 641px) {
-  .gallery-grid-video { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gallery-grid-video { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (min-width: 1025px) {
   .gallery-grid-video { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -143,7 +143,7 @@ body {
 .gallery-grid-photo {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 @media (min-width: 641px) {
   .gallery-grid-photo { grid-template-columns: repeat(3, minmax(0, 1fr)); }

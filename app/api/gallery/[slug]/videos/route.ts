@@ -17,13 +17,16 @@ export async function GET(
   const db = supabaseAdmin()
   const { data: event } = await db
     .from('events')
-    .select('pcloud_folder_id, couple_name, event_date, hidden_files, edit_token, expires_at, operator_id')
+    .select('pcloud_folder_id, couple_name, event_date, hidden_files, edit_token, expires_at, operator_id, view_count')
     .eq('slug', slug)
     .single()
 
   if (!event) {
     return NextResponse.json({ error: 'Événement introuvable' }, { status: 404 })
   }
+
+  // Increment view count (fire and forget)
+  db.from('events').update({ view_count: ((event as any).view_count || 0) + 1 }).eq('slug', slug).then(() => {})
 
   // Fetch operator branding if linked
   let operator = null
