@@ -62,8 +62,8 @@ export async function POST(
 
   const rootFolderId = process.env.PCLOUD_ROOT_FOLDER_ID || '0'
 
-  // 1. Find or create "Logos loueurs" inside root
-  const logosFolderId = await findOrCreateFolder(pcloudToken, rootFolderId, 'Logos loueurs')
+  // 1. Find or create "Logos" inside root
+  const logosFolderId = await findOrCreateFolder(pcloudToken, rootFolderId, 'Logos')
 
   // 2. Find or create operator subfolder inside "Logos loueurs"
   const operatorFolderId = await findOrCreateFolder(pcloudToken, logosFolderId, operator.name)

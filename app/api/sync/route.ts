@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
   }
 
   const operatorFolders = (data.metadata?.contents ?? []).filter(
-    (c: any) => c.isfolder && c.name !== 'Logos loueurs'
+    (c: any) => c.isfolder && c.name !== 'Logos loueurs' && c.name !== 'Logos'
   )
 
   const db = supabaseAdmin()
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
   const existingIds = new Set((existing ?? []).map((e: any) => String(e.pcloud_folder_id)))
 
   // Load all operators
-  const { data: allOperators } = await db.from('operators').select('id, name')
+  const { data: allOperators } = await db.from('operators').select('id, name, slug')
 
   const created: string[] = []
   const skipped: string[] = []
@@ -99,7 +99,8 @@ export async function GET(req: NextRequest) {
         continue
       }
 
-      const slug = slugify(eventName, year)
+      const opSlugPrefix = operator?.slug ? `${operator.slug}-` : ''
+      const slug = opSlugPrefix + slugify(eventName, year)
       const password = passwordFromName(eventName, year)
       const passwordHash = await hashPassword(password)
 
