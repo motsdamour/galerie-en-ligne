@@ -30,6 +30,7 @@ export default function LoueursPage() {
   const [opForm, setOpForm] = useState({ name: '', slug: '', email: '', password: '', city: '', phone: '', logo_url: '' })
   const [creatingOp, setCreatingOp] = useState(false)
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
+  const [deletingOpSlug, setDeletingOpSlug] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) return
@@ -87,6 +88,22 @@ export default function LoueursPage() {
       alert(`Compte loueur créé !\nAccès : https://galerie-en-ligne.fr/${data.slug}`)
     } else {
       alert(data.error)
+    }
+  }
+
+  async function deleteOperator(opSlug: string) {
+    if (!window.confirm('Supprimer ce loueur ? Cette action est irréversible.')) return
+    setDeletingOpSlug(opSlug)
+    const res = await fetch(`/api/operators/${opSlug}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    setDeletingOpSlug(null)
+    if (res.ok) {
+      setOperators(prev => prev.filter(op => op.slug !== opSlug))
+    } else {
+      const data = await res.json()
+      alert(data.error ?? 'Erreur')
     }
   }
 
@@ -178,6 +195,17 @@ export default function LoueursPage() {
                   }}>
                     {op.is_active ? 'Actif' : 'Inactif'}
                   </span>
+                  <button
+                    onClick={() => deleteOperator(op.slug)}
+                    disabled={deletingOpSlug === op.slug}
+                    style={{
+                      background: 'transparent', border: 'none', fontSize: 11,
+                      fontFamily: "'Inter', sans-serif", cursor: 'pointer', color: '#b71c1c',
+                      opacity: deletingOpSlug === op.slug ? 0.5 : 1, padding: '4px 6px', fontWeight: 500,
+                    }}
+                  >
+                    {deletingOpSlug === op.slug ? '...' : 'Suppr'}
+                  </button>
                 </div>
               )
             })}
