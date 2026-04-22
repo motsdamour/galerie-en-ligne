@@ -80,7 +80,9 @@ export async function GET(req: NextRequest) {
       (op: any) => op.name.toLowerCase() === opFolderName.toLowerCase()
     )
 
-    console.log('[SYNC] Dossier opérateur:', opFolderName, 'operator_id:', operator?.id ?? 'non trouvé')
+    console.log('[SYNC] Dossier opérateur:', opFolderName, 'operator_id:', operator?.id ?? 'non trouvé — SKIP')
+
+    if (!operator) continue
 
     // 3. List subfolders (events) inside this operator folder
     const subRes = await fetch(`${PCLOUD_API}/listfolder?auth=${token}&folderid=${opFolder.folderid}&recursive=0`)
