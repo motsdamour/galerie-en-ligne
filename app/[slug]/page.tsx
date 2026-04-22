@@ -11,7 +11,7 @@ export default function OperatorSlugPage({ params }: { params: Promise<{ slug: s
 
   useEffect(() => {
     if (status === 'loading') return
-    if (status === 'authenticated' && session?.user?.operatorSlug === slug) {
+    if (status === 'authenticated' && (session?.user as any)?.operatorSlug === slug) {
       router.replace(`/${slug}/dashboard`)
     } else {
       router.replace('/login')

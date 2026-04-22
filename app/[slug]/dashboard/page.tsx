@@ -36,8 +36,9 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
       return
     }
     // Verify the session matches this operator slug
-    if (session?.user?.operatorSlug && session.user.operatorSlug !== slug) {
-      router.push(`/${session.user.operatorSlug}/dashboard`)
+    const opSlug = (session?.user as any)?.operatorSlug
+    if (opSlug && opSlug !== slug) {
+      router.push(`/${opSlug}/dashboard`)
       return
     }
 
