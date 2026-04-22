@@ -59,7 +59,7 @@ export async function GET(
   const db = supabaseAdmin()
   const { data: events } = await db
     .from('events')
-    .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at, password_plain, edit_token, couple_email')
+    .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at, password_plain, edit_token, couple_email, view_count, download_count')
     .eq('operator_id', operatorId)
     .order('created_at', { ascending: false })
 

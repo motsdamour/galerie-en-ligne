@@ -13,6 +13,7 @@ type OperatorDetail = {
   logo_url: string | null
   accent_color: string | null
   bg_color: string | null
+  type: string | null
   is_active: boolean
   created_at: string
 }
@@ -160,12 +161,24 @@ export default function LoueurDetailPage({ params }: { params: Promise<{ slug: s
           </div>
         )}
         <div style={{ flex: 1 }}>
-          <h1 style={{
-            fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 500,
-            fontStyle: 'italic', color: '#1A1A1A', margin: 0, lineHeight: 1.15,
-          }}>
-            {operator.name}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h1 style={{
+              fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 500,
+              fontStyle: 'italic', color: '#1A1A1A', margin: 0, lineHeight: 1.15,
+            }}>
+              {operator.name}
+            </h1>
+            {operator.type && (
+              <span style={{
+                background: operator.type === 'videobooth' ? '#EDE9FE' : '#DBEAFE',
+                color: operator.type === 'videobooth' ? '#6D28D9' : '#1D4ED8',
+                padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 600,
+                fontFamily: "'Inter', sans-serif", textTransform: 'uppercase', letterSpacing: '0.04em',
+              }}>
+                {operator.type}
+              </span>
+            )}
+          </div>
           <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#9B9B9B', margin: '4px 0 0' }}>
             {operator.email}
             {operator.city && ` · ${operator.city}`}

@@ -10,6 +10,18 @@ export const config = {
 }
 
 const PCLOUD_API = 'https://eapi.pcloud.com'
+
+function sumFileSize(contents: any[]): number {
+  let total = 0
+  for (const item of contents) {
+    if (item.isfolder) {
+      total += sumFileSize(item.contents ?? [])
+    } else {
+      total += item.size || 0
+    }
+  }
+  return total
+}
 const MAX_SIZE = 100 * 1024 * 1024 // 100MB
 const MAX_GUEST_PHOTOS = 1000
 const MAX_GUEST_VIDEOS = 200
@@ -30,7 +42,7 @@ export async function POST(
   const db = supabaseAdmin()
   const { data: event } = await db
     .from('events')
-    .select('pcloud_folder_id, is_active, expires_at')
+    .select('pcloud_folder_id, is_active, expires_at, operator_id')
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
@@ -41,6 +53,34 @@ export async function POST(
 
   if (event.expires_at && new Date(event.expires_at) < new Date()) {
     return NextResponse.json({ error: 'Galerie expirée' }, { status: 403 })
+  }
+
+  // Quota check for operator storage
+  if (event.operator_id) {
+    const { data: operator } = await db
+      .from('operators')
+      .select('pcloud_folder_id, storage_limit_gb')
+      .eq('id', event.operator_id)
+      .single()
+
+    if (operator?.pcloud_folder_id) {
+      const limitGb = operator.storage_limit_gb || 100
+      try {
+        const quotaRes = await fetch(
+          `${PCLOUD_API}/listfolder?auth=${token}&folderid=${operator.pcloud_folder_id}&recursive=1`
+        )
+        const quotaData = await quotaRes.json()
+        if (quotaData.result === 0) {
+          const totalBytes = sumFileSize(quotaData.metadata?.contents ?? [])
+          const usedGb = totalBytes / 1073741824
+          if (usedGb >= limitGb) {
+            return NextResponse.json({ error: 'Quota de stockage dépassé' }, { status: 403 })
+          }
+        }
+      } catch (err) {
+        console.error('[UPLOAD] Quota check error:', err)
+      }
+    }
   }
 
   const formData = await req.formData()

@@ -29,12 +29,17 @@ export default function OverviewPage() {
   const [form, setForm] = useState({ coupleName: '', eventDate: '', eventType: 'mariage', pcloudFolderId: '', customPassword: '', coupleEmail: '' })
   const [creating, setCreating] = useState(false)
   const [stats, setStats] = useState({ totalGalleries: 0, liveGalleries: 0, totalFiles: 0, sharedFiles: 0 })
+  const [alerts, setAlerts] = useState<any[]>([])
 
   useEffect(() => {
     if (!token) return
     fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => { if (d.totalGalleries !== undefined) setStats(d) })
+      .catch(() => {})
+    fetch('/api/admin/storage-alerts', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => r.json())
+      .then(d => setAlerts(d.alerts ?? []))
       .catch(() => {})
   }, [token])
 
@@ -191,6 +196,34 @@ export default function OverviewPage() {
           </div>
         ))}
       </div>
+
+      {alerts.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontStyle: 'italic', fontWeight: 500, color: '#1A1A1A', margin: '0 0 12px' }}>
+            Alertes stockage
+          </h3>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {alerts.map((a: any) => (
+              <div key={a.slug} style={{
+                background: a.percent > 90 ? '#FEE2E2' : '#FFF7ED',
+                border: `1px solid ${a.percent > 90 ? '#FECACA' : '#FED7AA'}`,
+                borderRadius: 12, padding: '14px 18px', minWidth: 220,
+              }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: '#1A1A1A', margin: '0 0 4px' }}>{a.name}</p>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: a.percent > 90 ? '#DC2626' : '#EA580C', margin: '0 0 8px' }}>
+                  {a.percent}% du stockage utilisé ({a.used_gb} / {a.limit_gb} GB)
+                </p>
+                <a href={`mailto:${a.email}`} style={{
+                  fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: '#6B6B6B',
+                  textDecoration: 'none', border: '1px solid #E8E4DF', borderRadius: 6, padding: '4px 12px',
+                }}>
+                  Contacter
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Two-column grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>

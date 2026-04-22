@@ -13,6 +13,7 @@ type Operator = {
   phone: string | null
   logo_url: string | null
   pcloud_folder_id: string | null
+  type: string | null
   is_active: boolean
   created_at: string
 }
@@ -27,7 +28,7 @@ export default function LoueursPage() {
   // Operators (comptes loueurs)
   const [operators, setOperators] = useState<Operator[]>([])
   const [showCreateOp, setShowCreateOp] = useState(false)
-  const [opForm, setOpForm] = useState({ name: '', slug: '', email: '', password: '', city: '', phone: '', accent_color: '#2C2C2C', bg_color: '#FAFAF8' })
+  const [opForm, setOpForm] = useState({ name: '', slug: '', email: '', password: '', city: '', phone: '', type: 'videobooth', accent_color: '#2C2C2C', bg_color: '#FAFAF8' })
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [creatingOp, setCreatingOp] = useState(false)
@@ -110,7 +111,7 @@ export default function LoueursPage() {
 
     setCreatingOp(false)
     setOperators(prev => [finalData, ...prev])
-    setOpForm({ name: '', slug: '', email: '', password: '', city: '', phone: '', accent_color: '#2C2C2C', bg_color: '#FAFAF8' })
+    setOpForm({ name: '', slug: '', email: '', password: '', city: '', phone: '', type: 'videobooth', accent_color: '#2C2C2C', bg_color: '#FAFAF8' })
     setLogoFile(null)
     setLogoPreview(null)
     setShowCreateOp(false)
@@ -195,8 +196,18 @@ export default function LoueursPage() {
                     </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: '#1A1A1A', margin: 0 }}>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: '#1A1A1A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                       {op.name}
+                      {op.type && (
+                        <span style={{
+                          background: op.type === 'videobooth' ? '#EDE9FE' : '#DBEAFE',
+                          color: op.type === 'videobooth' ? '#6D28D9' : '#1D4ED8',
+                          padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 600,
+                          fontFamily: "'Inter', sans-serif", textTransform: 'uppercase', letterSpacing: '0.04em',
+                        }}>
+                          {op.type}
+                        </span>
+                      )}
                     </p>
                     <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9B9B9B', margin: 0 }}>
                       {op.email}{op.city ? ` · ${op.city}` : ''}
@@ -279,6 +290,14 @@ export default function LoueursPage() {
                 <label style={labelStyle}>Téléphone</label>
                 <input type="tel" placeholder="06 12 34 56 78" value={opForm.phone}
                   onChange={e => setOpForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={labelStyle}>Type</label>
+                <select value={opForm.type} onChange={e => setOpForm(f => ({ ...f, type: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #E8E4DF', borderRadius: 8, fontSize: 14, fontFamily: "'Inter', sans-serif", outline: 'none', boxSizing: 'border-box', background: 'white' }}>
+                  <option value="videobooth">Videobooth</option>
+                  <option value="photographe">Photographe</option>
+                </select>
               </div>
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={labelStyle}>Logo (optionnel, max 10 MB)</label>

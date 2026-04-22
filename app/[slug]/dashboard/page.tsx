@@ -16,6 +16,8 @@ type GalleryEvent = {
   password_plain: string | null
   edit_token: string | null
   couple_email: string | null
+  view_count?: number
+  download_count?: number
 }
 
 export default function OperatorDashboard({ params }: { params: Promise<{ slug: string }> }) {
@@ -36,6 +38,7 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
   const [uploadProgress, setUploadProgress] = useState<Record<string, { done: boolean; error?: string }>>({})
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [storage, setStorage] = useState<{ used_gb: number; limit_gb: number; percent: number } | null>(null)
 
   useEffect(() => {
     if (sessionStatus === 'loading') return
@@ -62,6 +65,8 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
       })
       .catch(() => setError('Erreur de chargement'))
       .finally(() => setLoading(false))
+
+    fetch(`/api/operators/${slug}/storage`).then(r => r.json()).then(d => setStorage(d)).catch(() => {})
   }, [slug, router, session, sessionStatus])
 
   const now = new Date()
@@ -275,6 +280,18 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
           </div>
         </div>
 
+        {storage && (
+          <div style={{ marginBottom: 24, maxWidth: 500 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#9B9B9B', fontFamily: "'Inter', sans-serif", marginBottom: 6 }}>
+              <span>Stockage utilisé</span>
+              <span>{storage.used_gb} GB / {storage.limit_gb} GB</span>
+            </div>
+            <div style={{ height: 6, background: '#F0EDE8', borderRadius: 999 }}>
+              <div style={{ height: '100%', width: `${Math.min(storage.percent, 100)}%`, background: storage.percent > 80 ? '#E53E3E' : storage.percent > 60 ? '#DD6B20' : '#2C2C2C', borderRadius: 999, transition: 'width 0.5s ease' }}/>
+            </div>
+          </div>
+        )}
+
         {/* Gallery list */}
         <div style={{ background: 'white', border: '1px solid #E8E4DF', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px -4px rgba(0,0,0,.06)' }}>
           {galleries.length === 0 ? (
@@ -376,6 +393,11 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
                     >
                       Ajouter des médias
                     </button>
+                  </div>
+                  <div style={{ paddingLeft: 54, marginTop: 6 }}>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9B9B9B' }}>
+                      👁 {(ev as any).view_count || 0} vues · ⬇ {(ev as any).download_count || 0} téléchargements
+                    </span>
                   </div>
                 </div>
               )
