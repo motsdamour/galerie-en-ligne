@@ -277,7 +277,7 @@ export default function LoueursPage() {
                   onChange={e => setOpForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Logo (optionnel, max 2 MB)</label>
+                <label style={labelStyle}>Logo (optionnel, max 10 MB)</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <input
                     type="file"

@@ -38,8 +38,8 @@ export async function POST(
     return NextResponse.json({ error: 'Aucun fichier' }, { status: 400 })
   }
 
-  if (file.size > 2 * 1024 * 1024) {
-    return NextResponse.json({ error: 'Fichier trop volumineux (max 2 MB)' }, { status: 400 })
+  if (file.size > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Fichier trop volumineux (max 10 MB)' }, { status: 400 })
   }
 
   // Upload to pCloud
