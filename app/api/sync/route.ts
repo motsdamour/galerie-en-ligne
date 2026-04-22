@@ -42,8 +42,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'PCLOUD_AUTH_TOKEN manquant' }, { status: 500 })
   }
 
-  // List pCloud folders from configured root
   const rootFolderId = process.env.PCLOUD_ROOT_FOLDER_ID || '0'
+
+  // 1. List operator folders in root
   const res = await fetch(`${PCLOUD_API}/listfolder?auth=${token}&folderid=${rootFolderId}&recursive=0`)
   const data = await res.json() as { result?: number; error?: string; metadata?: { contents?: any[] } }
 
@@ -51,85 +52,107 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: `pCloud: ${data.error}` }, { status: 502 })
   }
 
-  const folders = (data.metadata?.contents ?? []).filter((c: any) => c.isfolder)
+  const operatorFolders = (data.metadata?.contents ?? []).filter(
+    (c: any) => c.isfolder && c.name !== 'Logos loueurs'
+  )
 
   const db = supabaseAdmin()
-  const { data: existing } = await db
-    .from('events')
-    .select('pcloud_folder_id')
 
+  // Load existing events to check duplicates
+  const { data: existing } = await db.from('events').select('pcloud_folder_id')
   const existingIds = new Set((existing ?? []).map((e: any) => String(e.pcloud_folder_id)))
+
+  // Load all operators
+  const { data: allOperators } = await db.from('operators').select('id, name')
 
   const created: string[] = []
   const skipped: string[] = []
+  const errors: string[] = []
 
   const today = new Date().toISOString().split('T')[0]
   const year = new Date().getFullYear()
 
-  for (const folder of folders) {
-    const folderId = String(folder.folderid)
+  for (const opFolder of operatorFolders) {
+    const opFolderName = opFolder.name.trim()
 
-    if (existingIds.has(folderId)) {
-      skipped.push(folder.name)
-      continue
-    }
-
-    const coupleName = folder.name.trim()
-    const slug = slugify(coupleName, year)
-    const password = passwordFromName(coupleName, year)
-    const passwordHash = await hashPassword(password)
-
-    const expiresAt = new Date(today)
-    expiresAt.setDate(expiresAt.getDate() + 30)
-
-    const editToken = crypto.randomUUID()
-
-    const { error } = await db.from('events').insert({
-      couple_name: coupleName,
-      event_date: today,
-      event_type: 'mariage',
-      pcloud_folder_id: folderId,
-      slug,
-      password_hash: passwordHash,
-      password_plain: password,
-      edit_token: editToken,
-      expires_at: expiresAt.toISOString(),
-      is_active: true,
-    })
-
-    if (error) {
-      // Slug conflict — append folder id
-      if (error.code === '23505') {
-        const slugAlt = `${slug}-${folderId}`
-        await db.from('events').insert({
-          couple_name: coupleName,
-          event_date: today,
-          event_type: 'mariage',
-          pcloud_folder_id: folderId,
-          slug: slugAlt,
-          password_hash: passwordHash,
-          password_plain: password,
-          edit_token: editToken,
-          expires_at: expiresAt.toISOString(),
-          is_active: true,
-        })
-      }
-    }
-
-    created.push(coupleName)
-
-    try {
-      await sendNewGalleryEmail({ couple_name: coupleName, slug, password_plain: password, edit_token: editToken, couple_email: null })
-    } catch (err) {
-      console.error('Email error:', err)
-    }
-
-    await sendNotification(
-      'Nouvelle galerie creee !',
-      `La galerie de ${coupleName} est en ligne`,
-      `${process.env.NEXT_PUBLIC_SITE_URL}/galerie/${slug}`
+    // 2. Match operator by name (case-insensitive)
+    const operator = (allOperators ?? []).find(
+      (op: any) => op.name.toLowerCase() === opFolderName.toLowerCase()
     )
+
+    console.log('[SYNC] Dossier opérateur:', opFolderName, 'operator_id:', operator?.id ?? 'non trouvé')
+
+    // 3. List subfolders (events) inside this operator folder
+    const subRes = await fetch(`${PCLOUD_API}/listfolder?auth=${token}&folderid=${opFolder.folderid}&recursive=0`)
+    const subData = await subRes.json()
+
+    const eventFolders = (subData.metadata?.contents ?? []).filter((c: any) => c.isfolder)
+
+    for (const eventFolder of eventFolders) {
+      const folderId = String(eventFolder.folderid)
+      const eventName = eventFolder.name.trim()
+
+      console.log('[SYNC] Événement trouvé:', eventName, 'folderid:', folderId)
+
+      if (existingIds.has(folderId)) {
+        skipped.push(`${opFolderName}/${eventName}`)
+        continue
+      }
+
+      const slug = slugify(eventName, year)
+      const password = passwordFromName(eventName, year)
+      const passwordHash = await hashPassword(password)
+
+      const expiresAt = new Date(today)
+      expiresAt.setDate(expiresAt.getDate() + 30)
+
+      const editToken = crypto.randomUUID()
+
+      const insertData: any = {
+        couple_name: eventName,
+        event_date: today,
+        event_type: 'mariage',
+        pcloud_folder_id: folderId,
+        slug,
+        password_hash: passwordHash,
+        password_plain: password,
+        edit_token: editToken,
+        expires_at: expiresAt.toISOString(),
+        is_active: true,
+      }
+
+      if (operator) {
+        insertData.operator_id = operator.id
+      }
+
+      const { error } = await db.from('events').insert(insertData)
+
+      if (error) {
+        if (error.code === '23505') {
+          const slugAlt = `${slug}-${folderId}`
+          await db.from('events').insert({ ...insertData, slug: slugAlt })
+        } else {
+          errors.push(`${eventName}: ${error.message}`)
+          continue
+        }
+      }
+
+      existingIds.add(folderId)
+      created.push(`${opFolderName}/${eventName}`)
+
+      try {
+        await sendNewGalleryEmail({ couple_name: eventName, slug, password_plain: password, edit_token: editToken, couple_email: null })
+      } catch (err) {
+        console.error('[SYNC] Email error:', err)
+      }
+
+      await sendNotification(
+        'Nouvelle galerie creee !',
+        `La galerie de ${eventName} est en ligne`,
+        `${process.env.NEXT_PUBLIC_SITE_URL}/galerie/${slug}`
+      )
+    }
   }
 
-  return NextResponse.json({ created, skipped })
+  return NextResponse.json({ created, skipped, errors: errors.length > 0 ? errors : undefined })
 }
