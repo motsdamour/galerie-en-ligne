@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
-  const { name, slug, email, password, city, phone, logo_url } = await req.json()
+  const { name, slug, email, password, city, phone, logo_url, accent_color, bg_color } = await req.json()
 
   if (!name || !slug || !email || !password) {
     return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
@@ -45,9 +45,11 @@ export async function POST(req: NextRequest) {
       name, slug, email, password_hash: passwordHash,
       city: city || null, phone: phone || null,
       logo_url: logo_url || null,
+      accent_color: accent_color || '#2C2C2C',
+      bg_color: bg_color || '#FAFAF8',
       pcloud_folder_id: pcloudFolderId,
     })
-    .select('id, name, slug, email, city, phone, logo_url, pcloud_folder_id, is_active, created_at')
+    .select('id, name, slug, email, city, phone, logo_url, accent_color, bg_color, pcloud_folder_id, is_active, created_at')
     .single()
 
   if (error) {
@@ -70,7 +72,7 @@ export async function GET(req: NextRequest) {
   const db = supabaseAdmin()
   const { data } = await db
     .from('operators')
-    .select('id, name, slug, email, city, phone, logo_url, pcloud_folder_id, is_active, created_at')
+    .select('id, name, slug, email, city, phone, logo_url, accent_color, bg_color, pcloud_folder_id, is_active, created_at')
     .order('created_at', { ascending: false })
 
   return NextResponse.json(data ?? [])

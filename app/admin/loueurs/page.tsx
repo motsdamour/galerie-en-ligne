@@ -27,7 +27,9 @@ export default function LoueursPage() {
   // Operators (comptes loueurs)
   const [operators, setOperators] = useState<Operator[]>([])
   const [showCreateOp, setShowCreateOp] = useState(false)
-  const [opForm, setOpForm] = useState({ name: '', slug: '', email: '', password: '', city: '', phone: '', logo_url: '' })
+  const [opForm, setOpForm] = useState({ name: '', slug: '', email: '', password: '', city: '', phone: '', accent_color: '#2C2C2C', bg_color: '#FAFAF8' })
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [creatingOp, setCreatingOp] = useState(false)
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   const [deletingOpSlug, setDeletingOpSlug] = useState<string | null>(null)
@@ -74,21 +76,45 @@ export default function LoueursPage() {
   async function createOperator(e: React.FormEvent) {
     e.preventDefault()
     setCreatingOp(true)
+
+    // 1. Create operator
     const res = await fetch('/api/operators', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(opForm),
     })
     const data = await res.json()
-    setCreatingOp(false)
-    if (res.ok) {
-      setOperators(prev => [data, ...prev])
-      setOpForm({ name: '', slug: '', email: '', password: '', city: '', phone: '', logo_url: '' })
-      setShowCreateOp(false)
-      alert(`Compte loueur créé !\nAccès : https://galerie-en-ligne.fr/${data.slug}`)
-    } else {
+
+    if (!res.ok) {
+      setCreatingOp(false)
       alert(data.error)
+      return
     }
+
+    let finalData = data
+
+    // 2. Upload logo if selected
+    if (logoFile && data.slug) {
+      const formData = new FormData()
+      formData.append('logo', logoFile)
+      const logoRes = await fetch(`/api/operators/${data.slug}/upload-logo`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+      const logoData = await logoRes.json()
+      if (logoRes.ok && logoData.logo_url) {
+        finalData = { ...finalData, logo_url: logoData.logo_url }
+      }
+    }
+
+    setCreatingOp(false)
+    setOperators(prev => [finalData, ...prev])
+    setOpForm({ name: '', slug: '', email: '', password: '', city: '', phone: '', accent_color: '#2C2C2C', bg_color: '#FAFAF8' })
+    setLogoFile(null)
+    setLogoPreview(null)
+    setShowCreateOp(false)
+    alert(`Compte loueur créé !\nAccès : https://galerie-en-ligne.fr/${data.slug}`)
   }
 
   async function deleteOperator(opSlug: string) {
@@ -251,9 +277,62 @@ export default function LoueursPage() {
                   onChange={e => setOpForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>URL du logo (optionnel)</label>
-                <input type="url" placeholder="https://exemple.com/logo.png" value={opForm.logo_url}
-                  onChange={e => setOpForm(f => ({ ...f, logo_url: e.target.value }))} />
+                <label style={labelStyle}>Logo (optionnel, max 2 MB)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    onChange={e => {
+                      const f = e.target.files?.[0] || null
+                      setLogoFile(f)
+                      if (f) {
+                        const reader = new FileReader()
+                        reader.onload = () => setLogoPreview(reader.result as string)
+                        reader.readAsDataURL(f)
+                      } else {
+                        setLogoPreview(null)
+                      }
+                    }}
+                    style={{ flex: 1, fontSize: 13, fontFamily: "'Inter', sans-serif" }}
+                  />
+                  {logoPreview && (
+                    <img src={logoPreview} alt="Aperçu" style={{ height: 40, borderRadius: 6, objectFit: 'contain', border: '1px solid #E8E4DF' }} />
+                  )}
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Couleur accent</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="color"
+                    value={opForm.accent_color}
+                    onChange={e => setOpForm(f => ({ ...f, accent_color: e.target.value }))}
+                    style={{ width: 36, height: 36, padding: 0, border: '1px solid #E8E4DF', borderRadius: 6, cursor: 'pointer' }}
+                  />
+                  <input
+                    type="text"
+                    value={opForm.accent_color}
+                    onChange={e => setOpForm(f => ({ ...f, accent_color: e.target.value }))}
+                    style={{ flex: 1, fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Couleur fond</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="color"
+                    value={opForm.bg_color}
+                    onChange={e => setOpForm(f => ({ ...f, bg_color: e.target.value }))}
+                    style={{ width: 36, height: 36, padding: 0, border: '1px solid #E8E4DF', borderRadius: 6, cursor: 'pointer' }}
+                  />
+                  <input
+                    type="text"
+                    value={opForm.bg_color}
+                    onChange={e => setOpForm(f => ({ ...f, bg_color: e.target.value }))}
+                    style={{ flex: 1, fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}
+                  />
+                </div>
               </div>
               {opForm.slug && (
                 <div style={{ gridColumn: 'span 2', background: '#F0EDE8', borderRadius: 10, padding: '10px 14px' }}>
