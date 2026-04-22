@@ -1,22 +1,11 @@
-import NextAuth from 'next-auth'
-import Google from 'next-auth/providers/google'
+import { getServerSession } from 'next-auth'
+import GoogleProvider from 'next-auth/providers/google'
 import { supabaseAdmin } from '@/lib/supabase'
+import type { NextAuthOptions } from 'next-auth'
 
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      email: string
-      name?: string | null
-      image?: string | null
-      operatorSlug?: string
-      operatorName?: string
-    }
-  }
-}
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
-    Google({
+    GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
@@ -38,12 +27,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const db = supabaseAdmin()
       const { data } = await db
         .from('operators')
-        .select('slug, name, logo_url')
+        .select('slug, name')
         .eq('email', session.user.email)
         .single()
       if (data) {
-        session.user.operatorSlug = data.slug
-        session.user.operatorName = data.name
+        ;(session.user as any).operatorSlug = data.slug
+        ;(session.user as any).operatorName = data.name
       }
       return session
     },
@@ -52,4 +41,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/login',
     error: '/login',
   },
-})
+  secret: process.env.NEXTAUTH_SECRET,
+}
+
+export function auth() {
+  return getServerSession(authOptions)
+}
