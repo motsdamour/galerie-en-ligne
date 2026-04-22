@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, createContext, useContext } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 
 type Event = {
   id: string
@@ -72,23 +73,44 @@ const ACCOUNT_ITEMS = [
 ]
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(null)
-  const [password, setPassword] = useState('')
-  const [loginError, setLoginError] = useState('')
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [events, setEvents] = useState<Event[]>([])
   const [users, setUsers] = useState<User[]>([])
-  const [checking, setChecking] = useState(true)
   const pathname = usePathname()
 
+  const isAdmin = (session?.user as any)?.isAdmin === true
+  // Use localStorage token for API calls (backward compat with existing admin APIs)
+  const [token, setToken] = useState<string | null>(null)
+
   useEffect(() => {
-    const t = localStorage.getItem('admin_token')
-    if (t) {
-      setToken(t)
-      fetchEvents(t)
-      fetchUsers(t)
+    if (status === 'loading') return
+    if (status === 'unauthenticated' || !isAdmin) {
+      router.push('/login')
+      return
     }
-    setChecking(false)
-  }, [])
+    // Auto-login to admin API to get a JWT token for API calls
+    const stored = localStorage.getItem('admin_token')
+    if (stored) {
+      setToken(stored)
+      fetchEvents(stored)
+      fetchUsers(stored)
+    } else {
+      // Generate token via admin login API
+      fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: '__google_auth__' }),
+      }).then(r => r.json()).then(data => {
+        if (data.token) {
+          localStorage.setItem('admin_token', data.token)
+          setToken(data.token)
+          fetchEvents(data.token)
+          fetchUsers(data.token)
+        }
+      }).catch(() => {})
+    }
+  }, [status, isAdmin, router])
 
   async function fetchEvents(t: string) {
     const res = await fetch('/api/admin/events', { headers: { Authorization: `Bearer ${t}` } })
@@ -104,48 +126,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     if (Array.isArray(data)) setUsers(data)
   }
 
-  async function login(e: React.FormEvent) {
-    e.preventDefault()
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    })
-    const data = await res.json()
-    if (res.ok) {
-      localStorage.setItem('admin_token', data.token)
-      setToken(data.token)
-      fetchEvents(data.token)
-      fetchUsers(data.token)
-    } else {
-      setLoginError(data.error)
-    }
-  }
-
   function logout() {
     localStorage.removeItem('admin_token')
     setToken(null)
     setEvents([])
     setUsers([])
+    signOut({ callbackUrl: '/login' })
   }
 
-  if (checking) return null
-
-  /* ─── LOGIN SCREEN ─── */
-  if (!token) return (
-    <div style={{ minHeight: '100vh', background: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'white', border: '1px solid #E8E4DF', borderRadius: 16, padding: 40, width: '100%', maxWidth: 380, textAlign: 'center' }}>
-        <p style={{ fontSize: 10, letterSpacing: '0.16em', color: '#8B7355', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", marginBottom: 8 }}>Back-office</p>
-        <h1 style={{ fontSize: 22, fontStyle: 'italic', fontFamily: "'Playfair Display', serif", marginBottom: 32, color: '#1A1A1A' }}>Galerie en ligne</h1>
-        <form onSubmit={login}>
-          <input type="password" placeholder="Mot de passe admin" value={password} onChange={e => setPassword(e.target.value)}
-            style={{ marginBottom: 12, width: '100%', padding: '10px 14px', border: '1px solid #E8E4DF', borderRadius: 6, fontSize: 14, fontFamily: "'Inter', sans-serif", color: '#1A1A1A', outline: 'none' }} required />
-          {loginError && <p style={{ fontSize: 12, color: '#c0524c', fontFamily: "'Inter', sans-serif", marginBottom: 12 }}>{loginError}</p>}
-          <button type="submit" style={{ width: '100%', background: '#2C2C2C', color: 'white', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 12, fontFamily: "'Inter', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>Accéder</button>
-        </form>
-      </div>
-    </div>
-  )
+  if (status === 'loading' || (!token && status === 'authenticated' && isAdmin)) return null
 
   const isActive = (href: string) => {
     if (href === '/admin') return pathname === '/admin'
@@ -198,11 +187,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   return (
     <AdminContext.Provider value={{
-      token,
+      token: token || '',
       events,
       users,
-      loadEvents: () => fetchEvents(token),
-      loadUsers: () => fetchUsers(token),
+      loadEvents: () => token ? fetchEvents(token) : Promise.resolve(),
+      loadUsers: () => token ? fetchUsers(token) : Promise.resolve(),
       logout,
     }}>
       <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAF8' }}>
@@ -288,38 +277,27 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             alignItems: 'center',
             gap: 10,
           }}>
-            <div style={{
-              width: 36,
-              height: 36,
-              borderRadius: 999,
-              background: '#2C2C2C',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: "'Playfair Display', serif",
-              fontSize: 17,
-              fontWeight: 500,
-              fontStyle: 'italic',
-              flexShrink: 0,
-            }}>
-              A
-            </div>
+            {session?.user?.image ? (
+              <img src={session.user.image} alt="" style={{ width: 36, height: 36, borderRadius: 999, flexShrink: 0 }} />
+            ) : (
+              <div style={{
+                width: 36, height: 36, borderRadius: 999, background: '#2C2C2C',
+                color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 500, fontStyle: 'italic', flexShrink: 0,
+              }}>
+                A
+              </div>
+            )}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#1A1A1A', margin: 0, lineHeight: 1.3 }}>Admin</p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#1A1A1A', margin: 0, lineHeight: 1.3 }}>{session?.user?.name || 'Admin'}</p>
               <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9B9B9B', margin: 0, lineHeight: 1.3 }}>Administrateur</p>
             </div>
             <button
               onClick={logout}
               title="Déconnexion"
               style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 4,
-                color: '#9B9B9B',
-                display: 'flex',
-                alignItems: 'center',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: 4, color: '#9B9B9B', display: 'flex', alignItems: 'center',
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
