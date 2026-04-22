@@ -1,137 +1,30 @@
 'use client'
 
-import { useState, use } from 'react'
+import { useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
-export default function OperatorLoginPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function OperatorSlugPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
   const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { data: session, status } = useSession()
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    const res = await fetch(`/api/operators/${slug}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-
-    const data = await res.json()
-
-    if (res.ok) {
-      router.push(`/${slug}/dashboard`)
+  useEffect(() => {
+    if (status === 'loading') return
+    if (status === 'authenticated' && session?.user?.operatorSlug === slug) {
+      router.replace(`/${slug}/dashboard`)
     } else {
-      setError(data.error || 'Erreur de connexion')
-      setLoading(false)
+      router.replace('/login')
     }
-  }
+  }, [status, session, slug, router])
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#FAFAF8',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
-    }}>
-      <div style={{
-        background: 'white',
-        border: '0.5px solid #E8E4DF',
-        borderRadius: '20px',
-        padding: '48px 40px',
-        width: '100%',
-        maxWidth: '420px',
-        textAlign: 'center',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.06)',
-      }}>
-        <p style={{
-          fontFamily: "'Playfair Display', serif",
-          fontStyle: 'italic',
-          fontSize: '28px',
-          fontWeight: 500,
-          color: '#1A1A1A',
-          margin: '0 0 8px',
-        }}>
-          Galerie en ligne
-        </p>
-        <p style={{
-          fontSize: '11px',
-          fontWeight: 500,
-          letterSpacing: '0.16em',
-          color: '#8B7355',
-          textTransform: 'uppercase',
-          fontFamily: "'Inter', sans-serif",
-          marginBottom: '32px',
-        }}>
-          Espace loueur
-        </p>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '28px' }}>
-          <div style={{ width: '40px', height: '0.5px', background: '#8B7355', opacity: 0.4 }} />
-          <div style={{ width: '5px', height: '5px', background: '#8B7355', transform: 'rotate(45deg)', opacity: 0.5 }} />
-          <div style={{ width: '40px', height: '0.5px', background: '#8B7355', opacity: 0.4 }} />
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            style={{
-              marginBottom: '12px', textAlign: 'center', letterSpacing: '0.02em',
-              width: '100%', padding: '14px', border: '0.5px solid #E8E4DF',
-              borderRadius: '12px', fontSize: '15px', fontWeight: 300, fontFamily: "'Inter', sans-serif",
-              outline: 'none', background: 'white', color: '#1A1A1A',
-            }}
-            required
-            autoFocus
-          />
-          <input
-            type="password"
-            placeholder="Mot de passe"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            style={{
-              marginBottom: '16px', textAlign: 'center', letterSpacing: '0.06em',
-              width: '100%', padding: '14px', border: '0.5px solid #E8E4DF',
-              borderRadius: '12px', fontSize: '15px', fontWeight: 300, fontFamily: "'Inter', sans-serif",
-              outline: 'none', background: 'white', color: '#1A1A1A',
-            }}
-            required
-          />
-          {error && (
-            <p style={{ fontSize: '14px', fontWeight: 400, color: '#c0524c', fontFamily: "'Inter', sans-serif", marginBottom: '12px' }}>
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%', padding: '14px', background: '#2C2C2C', color: 'white',
-              border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 500,
-              fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em',
-              cursor: loading ? 'default' : 'pointer',
-              opacity: loading ? 0.6 : 1,
-            }}
-          >
-            {loading ? 'Connexion...' : 'Accéder à mes galeries'}
-          </button>
-        </form>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAFAF8' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: '32px', height: '32px', border: '1px solid #2C2C2C', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+        <p style={{ fontSize: '15px', fontWeight: 300, color: '#6B6B6B', fontFamily: 'Inter, sans-serif' }}>Redirection…</p>
       </div>
-
-      <p style={{ fontSize: '13px', fontWeight: 300, color: '#9B9B9B', fontFamily: "'Inter', sans-serif", marginTop: '32px', letterSpacing: '0.04em' }}>
-        galerie-en-ligne.fr
-      </p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

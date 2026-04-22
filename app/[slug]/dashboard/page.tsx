@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 
 type GalleryEvent = {
   id: string
@@ -20,6 +21,7 @@ type GalleryEvent = {
 export default function OperatorDashboard({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
   const router = useRouter()
+  const { data: session, status: sessionStatus } = useSession()
   const [galleries, setGalleries] = useState<GalleryEvent[]>([])
   const [stats, setStats] = useState({ total: 0, active: 0 })
   const [loading, setLoading] = useState(true)
@@ -28,9 +30,20 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
+    if (sessionStatus === 'loading') return
+    if (sessionStatus === 'unauthenticated') {
+      router.push('/login')
+      return
+    }
+    // Verify the session matches this operator slug
+    if (session?.user?.operatorSlug && session.user.operatorSlug !== slug) {
+      router.push(`/${session.user.operatorSlug}/dashboard`)
+      return
+    }
+
     fetch(`/api/operators/${slug}/galleries`)
       .then(r => {
-        if (r.status === 401) { router.push(`/${slug}`); return null }
+        if (r.status === 401) { router.push('/login'); return null }
         return r.json()
       })
       .then(data => {
@@ -40,7 +53,7 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
       })
       .catch(() => setError('Erreur de chargement'))
       .finally(() => setLoading(false))
-  }, [slug, router])
+  }, [slug, router, session, sessionStatus])
 
   const now = new Date()
 
@@ -104,7 +117,7 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
 
   function logout() {
     document.cookie = 'operator_session=; path=/; max-age=0'
-    router.push(`/${slug}`)
+    signOut({ callbackUrl: '/login' })
   }
 
   if (loading) return (
