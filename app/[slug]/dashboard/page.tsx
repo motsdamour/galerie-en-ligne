@@ -30,7 +30,7 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
   useEffect(() => {
     fetch(`/api/operators/${slug}/galleries`)
       .then(r => {
-        if (r.status === 401) { router.push(`/loueur/${slug}`); return null }
+        if (r.status === 401) { router.push(`/${slug}`); return null }
         return r.json()
       })
       .then(data => {
@@ -104,7 +104,7 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
 
   function logout() {
     document.cookie = 'operator_session=; path=/; max-age=0'
-    router.push(`/loueur/${slug}`)
+    router.push(`/${slug}`)
   }
 
   if (loading) return (

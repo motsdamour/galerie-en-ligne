@@ -84,7 +84,7 @@ export default function LoueursPage() {
       setOperators(prev => [data, ...prev])
       setOpForm({ name: '', slug: '', email: '', password: '', city: '', phone: '', logo_url: '' })
       setShowCreateOp(false)
-      alert(`Compte loueur créé !\nAccès : https://galerie-en-ligne.fr/loueur/${data.slug}`)
+      alert(`Compte loueur créé !\nAccès : https://galerie-en-ligne.fr/${data.slug}`)
     } else {
       alert(data.error)
     }
@@ -129,7 +129,7 @@ export default function LoueursPage() {
         ) : (
           <div style={{ background: 'white', border: '1px solid #E8E4DF', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px -4px rgba(0,0,0,.06)' }}>
             {operators.map(op => {
-              const link = `https://galerie-en-ligne.fr/loueur/${op.slug}`
+              const link = `https://galerie-en-ligne.fr/${op.slug}`
               return (
                 <div key={op.id} style={{
                   display: 'flex', alignItems: 'center', gap: 14,
@@ -157,7 +157,7 @@ export default function LoueursPage() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#6B6B6B', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      /loueur/{op.slug}
+                      /{op.slug}
                     </span>
                     <button
                       onClick={() => { navigator.clipboard.writeText(link); setCopiedLink(op.id); setTimeout(() => setCopiedLink(null), 2000) }}
@@ -233,7 +233,7 @@ export default function LoueursPage() {
                     Lien d&apos;accès
                   </p>
                   <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: '#1A1A1A', margin: 0 }}>
-                    galerie-en-ligne.fr/loueur/{opForm.slug}
+                    galerie-en-ligne.fr/{opForm.slug}
                   </p>
                 </div>
               )}

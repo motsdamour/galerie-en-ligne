@@ -25,7 +25,7 @@ export default function OperatorLoginPage({ params }: { params: Promise<{ slug: 
     const data = await res.json()
 
     if (res.ok) {
-      router.push(`/loueur/${slug}/dashboard`)
+      router.push(`/${slug}/dashboard`)
     } else {
       setError(data.error || 'Erreur de connexion')
       setLoading(false)
