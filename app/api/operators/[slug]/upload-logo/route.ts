@@ -4,6 +4,24 @@ import { verifyAdminToken } from '@/lib/auth'
 
 const PCLOUD_API = 'https://eapi.pcloud.com'
 
+async function findOrCreateFolder(auth: string, parentId: string, name: string): Promise<string> {
+  // List parent contents to find existing folder
+  const listRes = await fetch(`${PCLOUD_API}/listfolder?auth=${auth}&folderid=${parentId}&recursive=0`)
+  const listData = await listRes.json()
+  const existing = (listData.metadata?.contents ?? []).find(
+    (c: any) => c.isfolder && c.name === name
+  )
+  if (existing) return String(existing.folderid)
+
+  // Create folder
+  const createRes = await fetch(
+    `${PCLOUD_API}/createfolder?auth=${auth}&folderid=${parentId}&name=${encodeURIComponent(name)}`
+  )
+  const createData = await createRes.json()
+  if (createData.metadata?.folderid) return String(createData.metadata.folderid)
+  throw new Error(`Impossible de créer le dossier "${name}"`)
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -23,7 +41,7 @@ export async function POST(
   const db = supabaseAdmin()
   const { data: operator } = await db
     .from('operators')
-    .select('id, pcloud_folder_id')
+    .select('id, name')
     .eq('slug', slug)
     .single()
 
@@ -42,8 +60,15 @@ export async function POST(
     return NextResponse.json({ error: 'Fichier trop volumineux (max 10 MB)' }, { status: 400 })
   }
 
-  // Upload to pCloud
-  const folderId = operator.pcloud_folder_id || process.env.PCLOUD_ROOT_FOLDER_ID || '0'
+  const rootFolderId = process.env.PCLOUD_ROOT_FOLDER_ID || '0'
+
+  // 1. Find or create "Logos loueurs" inside root
+  const logosFolderId = await findOrCreateFolder(pcloudToken, rootFolderId, 'Logos loueurs')
+
+  // 2. Find or create operator subfolder inside "Logos loueurs"
+  const operatorFolderId = await findOrCreateFolder(pcloudToken, logosFolderId, operator.name)
+
+  // 3. Upload logo into operator subfolder
   const ext = file.name.split('.').pop() || 'png'
   const fileName = `logo.${ext}`
 
@@ -51,7 +76,7 @@ export async function POST(
   uploadForm.append('file', file, fileName)
 
   const uploadRes = await fetch(
-    `${PCLOUD_API}/uploadfile?auth=${pcloudToken}&folderid=${folderId}&filename=${encodeURIComponent(fileName)}&renameifexists=1`,
+    `${PCLOUD_API}/uploadfile?auth=${pcloudToken}&folderid=${operatorFolderId}&filename=${encodeURIComponent(fileName)}&renameifexists=1`,
     { method: 'POST', body: uploadForm }
   )
   const uploadData = await uploadRes.json()
@@ -75,7 +100,6 @@ export async function POST(
     return NextResponse.json({ error: 'Impossible de créer le lien public' }, { status: 502 })
   }
 
-  // Build direct download URL from the public link code
   const logoUrl = `https://eapi.pcloud.com/getpubthumb?code=${linkData.code}&size=400x400`
 
   // Save to Supabase
