@@ -10,6 +10,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
+      const isAdmin = (session?.user as any)?.isAdmin
+      if (isAdmin) { router.push('/admin'); return }
       const slug = (session?.user as any)?.operatorSlug
       if (slug) router.push(`/${slug}/dashboard`)
     }

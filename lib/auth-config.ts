@@ -13,6 +13,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return false
+      if (user.email === process.env.ADMIN_EMAIL) return true
       const db = supabaseAdmin()
       const { data } = await db
         .from('operators')
@@ -24,6 +25,10 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session }) {
       if (!session.user?.email) return session
+      if (session.user.email === process.env.ADMIN_EMAIL) {
+        ;(session.user as any).isAdmin = true
+        return session
+      }
       const db = supabaseAdmin()
       const { data } = await db
         .from('operators')
