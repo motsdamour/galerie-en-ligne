@@ -174,10 +174,14 @@ export default function LoueursPage() {
             {operators.map(op => {
               const link = `https://galerie-en-ligne.fr/${op.slug}`
               return (
-                <div key={op.id} style={{
+                <a key={op.id} href={`/admin/loueurs/${op.slug}`} style={{
                   display: 'flex', alignItems: 'center', gap: 14,
                   padding: '14px 20px', borderBottom: '1px solid #F0EDE8',
-                }}>
+                  textDecoration: 'none', color: 'inherit', transition: 'background 0.1s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F0EDE8')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+                >
                   {op.logo_url ? (
                     <img src={op.logo_url} alt={op.name} style={{ width: 42, height: 42, borderRadius: 999, objectFit: 'cover', flexShrink: 0 }} />
                   ) : (
@@ -203,7 +207,7 @@ export default function LoueursPage() {
                       /{op.slug}
                     </span>
                     <button
-                      onClick={() => { navigator.clipboard.writeText(link); setCopiedLink(op.id); setTimeout(() => setCopiedLink(null), 2000) }}
+                      onClick={(e) => { e.preventDefault(); navigator.clipboard.writeText(link); setCopiedLink(op.id); setTimeout(() => setCopiedLink(null), 2000) }}
                       style={{
                         background: 'transparent', border: '1px solid #E8E4DF', borderRadius: 6,
                         padding: '4px 10px', fontSize: 11, fontFamily: "'Inter', sans-serif",
@@ -222,7 +226,7 @@ export default function LoueursPage() {
                     {op.is_active ? 'Actif' : 'Inactif'}
                   </span>
                   <button
-                    onClick={() => deleteOperator(op.slug)}
+                    onClick={(e) => { e.preventDefault(); deleteOperator(op.slug) }}
                     disabled={deletingOpSlug === op.slug}
                     style={{
                       background: 'transparent', border: 'none', fontSize: 11,
@@ -232,7 +236,7 @@ export default function LoueursPage() {
                   >
                     {deletingOpSlug === op.slug ? '...' : 'Suppr'}
                   </button>
-                </div>
+                </a>
               )
             })}
           </div>
