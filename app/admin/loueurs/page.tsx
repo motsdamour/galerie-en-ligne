@@ -11,6 +11,8 @@ type Operator = {
   email: string
   city: string | null
   phone: string | null
+  logo_url: string | null
+  pcloud_folder_id: string | null
   is_active: boolean
   created_at: string
 }
@@ -25,7 +27,7 @@ export default function LoueursPage() {
   // Operators (comptes loueurs)
   const [operators, setOperators] = useState<Operator[]>([])
   const [showCreateOp, setShowCreateOp] = useState(false)
-  const [opForm, setOpForm] = useState({ name: '', slug: '', email: '', password: '', city: '', phone: '' })
+  const [opForm, setOpForm] = useState({ name: '', slug: '', email: '', password: '', city: '', phone: '', logo_url: '' })
   const [creatingOp, setCreatingOp] = useState(false)
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
 
@@ -80,7 +82,7 @@ export default function LoueursPage() {
     setCreatingOp(false)
     if (res.ok) {
       setOperators(prev => [data, ...prev])
-      setOpForm({ name: '', slug: '', email: '', password: '', city: '', phone: '' })
+      setOpForm({ name: '', slug: '', email: '', password: '', city: '', phone: '', logo_url: '' })
       setShowCreateOp(false)
       alert(`Compte loueur créé !\nAccès : https://galerie-en-ligne.fr/loueur/${data.slug}`)
     } else {
@@ -133,14 +135,18 @@ export default function LoueursPage() {
                   display: 'flex', alignItems: 'center', gap: 14,
                   padding: '14px 20px', borderBottom: '1px solid #F0EDE8',
                 }}>
-                  <div style={{
-                    width: 42, height: 42, borderRadius: 999, background: '#2C2C2C',
-                    color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 500,
-                    fontStyle: 'italic', flexShrink: 0,
-                  }}>
-                    {op.name.charAt(0).toUpperCase()}
-                  </div>
+                  {op.logo_url ? (
+                    <img src={op.logo_url} alt={op.name} style={{ width: 42, height: 42, borderRadius: 999, objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{
+                      width: 42, height: 42, borderRadius: 999, background: '#2C2C2C',
+                      color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 500,
+                      fontStyle: 'italic', flexShrink: 0,
+                    }}>
+                      {op.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: '#1A1A1A', margin: 0 }}>
                       {op.name}
@@ -215,6 +221,11 @@ export default function LoueursPage() {
                 <label style={labelStyle}>Téléphone</label>
                 <input type="tel" placeholder="06 12 34 56 78" value={opForm.phone}
                   onChange={e => setOpForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={labelStyle}>URL du logo (optionnel)</label>
+                <input type="url" placeholder="https://exemple.com/logo.png" value={opForm.logo_url}
+                  onChange={e => setOpForm(f => ({ ...f, logo_url: e.target.value }))} />
               </div>
               {opForm.slug && (
                 <div style={{ gridColumn: 'span 2', background: '#F0EDE8', borderRadius: 10, padding: '10px 14px' }}>

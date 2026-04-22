@@ -27,17 +27,12 @@ type GalleryEvent = {
   expiresAt?: string
 }
 
-type Theme = {
-  bg: string
-  text: string
-  card: string
-  border: string
-  muted: string
-  subtle: string
+type Operator = {
+  name: string
+  logo_url: string | null
+  accent_color: string | null
+  bg_color: string | null
 }
-
-const LIGHT: Theme = { bg: '#FAFAF8', text: '#1A1A1A', card: '#F0EDE8', border: '#E8E4DF', muted: '#6B6B6B', subtle: '#9B9B9B' }
-const DARK: Theme  = { bg: '#1a1a1a', text: '#f0f0f0', card: '#2a2a2a', border: '#333333', muted: '#aaaaaa', subtle: '#666666' }
 
 function tabLabel(name: string): string {
   const map: Record<string, string> = {
@@ -85,6 +80,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const editToken = searchParams.get('edit_token')
 
   const [event, setEvent] = useState<GalleryEvent | null>(null)
+  const [operator, setOperator] = useState<Operator | null>(null)
   const [folders, setFolders] = useState<Folder[]>([])
   const [totalVideos, setTotalVideos] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -98,7 +94,6 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [dark, setDark] = useState(false)
   const [navDropOpen, setNavDropOpen] = useState(false)
   const [zipKey, setZipKey] = useState<string | null>(null)
   const [zipProgress, setZipProgress] = useState({ done: 0, total: 0 })
@@ -108,8 +103,12 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const navDropRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number | null>(null)
 
-
-  const t = dark ? DARK : LIGHT
+  // Dynamic branding
+  const accent = operator?.accent_color || '#2C2C2C'
+  const bg = operator?.bg_color || '#FAFAF8'
+  const border = '#E8E4DF'
+  const muted = '#6B6B6B'
+  const subtle = '#9B9B9B'
 
   useEffect(() => {
     const url = editToken
@@ -120,6 +119,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       .then(data => {
         if (data.error) { setError(data.error); return }
         setEvent(data.event)
+        if (data.operator) setOperator(data.operator)
         const tabOrder: Record<string, number> = { 'Boîte à questions': 0, "Livre d'or": 1, 'Photos': 2 }
         const rawFolders: Folder[] = data.folders ?? []
         const guestFromFolders: MediaFile[] = []
@@ -251,10 +251,6 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     return () => document.removeEventListener('keydown', h)
   }, [lightboxIndex, photoItems.length])
 
-  const formattedDate = event
-    ? new Date(event.eventDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-    : ''
-
   const coupleName = event ? slugify(event.coupleName) : 'galerie'
 
   function findFolder(label: string) {
@@ -294,9 +290,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             background: 'transparent', border: 'none', cursor: 'pointer',
             padding: '10px 14px', borderRadius: '6px', fontSize: '16px', fontWeight: 300,
             lineHeight: '20px', fontFamily: "'Inter', sans-serif", letterSpacing: '0.03em',
-            color: t.text, minHeight: '44px',
+            color: '#1A1A1A', minHeight: '44px',
           }}
-          onMouseEnter={e => (e.currentTarget.style.background = dark ? '#2a2a2a' : '#F0EDE8')}
+          onMouseEnter={e => (e.currentTarget.style.background = '#F0EDE8')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
           {opt.label}
@@ -306,8 +302,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   )
 
   const dropMenuStyle: React.CSSProperties = {
-    background: dark ? '#1a1a1a' : 'white',
-    border: '0.5px solid #E8E4DF',
+    background: 'white',
+    border: `0.5px solid ${border}`,
     borderRadius: '10px',
     padding: '6px',
     zIndex: 200,
@@ -343,100 +339,74 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     }
   }
 
+  // Guest media with content
+  const visibleGuestMedia = guestMedia.filter(p => !hiddenIds.has(p.id))
+
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAFAF8' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '32px', height: '32px', border: '1px solid #2C2C2C', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }}/>
-        <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#6B6B6B', fontFamily: 'Inter, sans-serif' }}>Chargement de vos souvenirs…</p>
+        <div style={{ width: '32px', height: '32px', border: `1px solid ${accent}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }}/>
+        <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: muted, fontFamily: 'Inter, sans-serif' }}>Chargement de vos souvenirs…</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
   if (error) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAFAF8' }}>
-      <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: '#6B6B6B', fontFamily: 'Inter, sans-serif' }}>{error}</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg }}>
+      <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: muted, fontFamily: 'Inter, sans-serif' }}>{error}</p>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: t.bg, color: t.text, transition: 'background 0.2s, color 0.2s', overflowX: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: bg, color: '#1A1A1A', overflowX: 'hidden' }}>
 
-      {/* Nav — 2 lignes */}
-      <nav className="gallery-nav" style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, transition: 'background 0.2s' }}>
-        {/* Ligne 1 : logo ← → télécharger + toggle */}
+      {/* Nav */}
+      <nav className="gallery-nav" style={{ background: bg, borderBottom: `0.5px solid ${border}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
-          <span style={{
-            fontFamily: "'Playfair Display', serif",
-            fontStyle: 'italic',
-            fontSize: '22px',
-            fontWeight: 500,
-            color: dark ? '#f0f0f0' : '#1A1A1A',
-            letterSpacing: '-0.01em',
-          }}>
-            Galerie en ligne
-          </span>
+          {/* Logo / brand */}
+          {operator?.logo_url ? (
+            <img src={operator.logo_url} alt={operator.name} style={{ height: '48px', maxWidth: '160px', objectFit: 'contain', display: 'block' }} />
+          ) : (
+            <span style={{
+              fontFamily: "'Playfair Display', serif",
+              fontStyle: 'italic',
+              fontSize: '22px',
+              fontWeight: 500,
+              color: '#1A1A1A',
+              letterSpacing: '-0.01em',
+            }}>
+              {operator?.name || 'Galerie en ligne'}
+            </span>
+          )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Bouton télécharger nav */}
-            <div ref={navDropRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setNavDropOpen(o => !o)}
-                disabled={!!zipKey}
-                style={{
-                  background: '#2C2C2C', color: 'white', border: 'none',
-                  padding: '8px 16px', borderRadius: '8px', fontSize: '16px', fontWeight: 400,
-                  lineHeight: '20px', letterSpacing: '0.05em', textTransform: 'uppercase', cursor: zipKey ? 'default' : 'pointer',
-                  fontFamily: "'Inter', sans-serif", opacity: zipKey ? 0.7 : 1,
-                  minHeight: '36px', whiteSpace: 'nowrap',
-                }}
-              >
-                {zipLabel}
-              </button>
-              {navDropOpen && (
-                <div style={{ ...dropMenuStyle, position: 'absolute', top: 'calc(100% + 6px)', right: 0 }}>
-                  {dropMenuContent}
-                </div>
-              )}
-            </div>
-
-            {/* Toggle dark/light */}
+          {/* Download button */}
+          <div ref={navDropRef} style={{ position: 'relative' }}>
             <button
-              onClick={() => setDark(d => !d)}
-              title={dark ? 'Mode clair' : 'Mode sombre'}
+              onClick={() => setNavDropOpen(o => !o)}
+              disabled={!!zipKey}
               style={{
-                background: 'transparent', border: `0.5px solid ${t.border}`, borderRadius: '50%',
-                width: '36px', height: '36px', cursor: 'pointer', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0,
+                background: accent, color: 'white', border: 'none',
+                padding: '8px 16px', borderRadius: '8px', fontSize: '16px', fontWeight: 400,
+                lineHeight: '20px', letterSpacing: '0.05em', textTransform: 'uppercase', cursor: zipKey ? 'default' : 'pointer',
+                fontFamily: "'Inter', sans-serif", opacity: zipKey ? 0.7 : 1,
+                minHeight: '36px', whiteSpace: 'nowrap',
               }}
             >
-              {dark ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="4"/>
-                  <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
-                  <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
-                  <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
-                  <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
-                </svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="#8B7355">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                </svg>
-              )}
+              {zipLabel}
             </button>
+            {navDropOpen && (
+              <div style={{ ...dropMenuStyle, position: 'absolute', top: 'calc(100% + 6px)', right: 0 }}>
+                {dropMenuContent}
+              </div>
+            )}
           </div>
         </div>
-
       </nav>
-
-      {/* Site name */}
-      <p style={{ textAlign: 'center', fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: dark ? '#666' : '#9B9B9B', fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em', textTransform: 'uppercase', margin: '12px 0 0' }}>
-        galerie-en-ligne.fr
-      </p>
 
       {/* Edit mode badge */}
       {isEditor && (
-        <div style={{ background: '#2C2C2C', color: 'white', textAlign: 'center', padding: '8px', fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: 'Inter, sans-serif', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <div style={{ background: accent, color: 'white', textAlign: 'center', padding: '8px', fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: 'Inter, sans-serif', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           Mode edition — cliquez sur le bouton masquer pour retirer un media
         </div>
       )}
@@ -445,11 +415,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
       <div className="gallery-hero" style={{ textAlign: 'center' }}>
         {event && (
           <>
-            <h1 className="gallery-couple-name" style={{ color: dark ? '#ffffff' : '#1A1A1A', marginBottom: '6px' }}>
+            <h1 className="gallery-couple-name" style={{ color: '#1A1A1A', marginBottom: '6px' }}>
               {event.coupleName}
             </h1>
             {event.expiresAt && (
-              <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: dark ? '#888888' : '#9B9B9B', fontFamily: "'Inter', sans-serif", margin: '0 0 10px' }}>
+              <p style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: subtle, fontFamily: "'Inter', sans-serif", margin: '0 0 10px' }}>
                 Galerie disponible encore {Math.max(0, Math.ceil((new Date(event.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} jours
               </p>
             )}
@@ -461,7 +431,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         <button
           onClick={() => setShareOpen(true)}
           style={{
-            background: 'white', border: '1px solid #2C2C2C', color: '#2C2C2C', fontWeight: 400,
+            background: 'white', border: `1px solid ${accent}`, color: accent, fontWeight: 400,
             padding: '8px 24px', borderRadius: '8px', fontSize: '16px', cursor: 'pointer',
             fontFamily: "'Inter', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase',
             lineHeight: '20px',
@@ -477,9 +447,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — only show folders with content + guest tab if has media */}
       <div className="gallery-tabs-area">
-        {folders.length > 1 && (
+        {(folders.length > 1 || visibleGuestMedia.length > 0) && (
           <div className="tabs-scroll">
             {folders.map((folder, i) => (
               <button
@@ -487,9 +457,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 onClick={() => { setActiveTab(i); setShowGuestTab(false) }}
                 style={{
                   flexShrink: 0,
-                  background: !showGuestTab && activeTab === i ? '#2C2C2C' : 'transparent',
-                  color: !showGuestTab && activeTab === i ? 'white' : t.muted,
-                  border: `0.5px solid ${!showGuestTab && activeTab === i ? '#2C2C2C' : t.border}`,
+                  background: !showGuestTab && activeTab === i ? accent : 'transparent',
+                  color: !showGuestTab && activeTab === i ? 'white' : muted,
+                  border: `0.5px solid ${!showGuestTab && activeTab === i ? accent : border}`,
                   borderRadius: '8px', padding: '8px 20px',
                   fontSize: !showGuestTab && activeTab === i ? '24px' : '16px',
                   fontWeight: !showGuestTab && activeTab === i ? 600 : 300,
@@ -503,25 +473,27 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({folder.videos.length})</span>
               </button>
             ))}
-            <button
-              onClick={() => setShowGuestTab(true)}
-              style={{
-                flexShrink: 0,
-                background: showGuestTab ? '#2C2C2C' : 'transparent',
-                color: showGuestTab ? 'white' : t.muted,
-                border: `0.5px solid ${showGuestTab ? '#2C2C2C' : t.border}`,
-                borderRadius: '8px', padding: '8px 20px',
-                fontSize: showGuestTab ? '24px' : '16px',
-                fontWeight: showGuestTab ? 600 : 300,
-                lineHeight: '20px',
-                fontFamily: "'Inter', sans-serif", cursor: 'pointer',
-                letterSpacing: '0.04em', transition: 'all 0.15s', minHeight: '44px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Photos & vidéos invités
-              <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({guestMedia.filter(p => !hiddenIds.has(p.id)).length})</span>
-            </button>
+            {visibleGuestMedia.length > 0 && (
+              <button
+                onClick={() => setShowGuestTab(true)}
+                style={{
+                  flexShrink: 0,
+                  background: showGuestTab ? accent : 'transparent',
+                  color: showGuestTab ? 'white' : muted,
+                  border: `0.5px solid ${showGuestTab ? accent : border}`,
+                  borderRadius: '8px', padding: '8px 20px',
+                  fontSize: showGuestTab ? '24px' : '16px',
+                  fontWeight: showGuestTab ? 600 : 300,
+                  lineHeight: '20px',
+                  fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+                  letterSpacing: '0.04em', transition: 'all 0.15s', minHeight: '44px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Photos & vidéos invités
+                <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>({visibleGuestMedia.length})</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -532,9 +504,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
           {(isEditor ? currentItems : currentItems.filter(item => !hiddenIds.has(item.id) && !item.hidden)).map((item) => {
             const isHidden = item.hidden || hiddenIds.has(item.id)
             const isPhoto = isPhotosTab || item.type === 'image'
-            if (!isPhoto) return <VideoCard key={item.id} item={item} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+            if (!isPhoto) return <VideoCard key={item.id} item={item} accent={accent} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
             const photoIdx = photoItems.findIndex(p => p.id === item.id)
-            return <PhotoCard key={item.id} item={item} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+            return <PhotoCard key={item.id} item={item} accent={accent} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
           })}
         </div>
       ) : (
@@ -546,7 +518,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               onClick={triggerUpload}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
-                background: '#2C2C2C', color: 'white', padding: '12px 28px',
+                background: accent, color: 'white', padding: '12px 28px',
                 borderRadius: '8px', fontSize: '16px', fontWeight: 400, lineHeight: '20px', fontFamily: "'Inter', sans-serif",
                 letterSpacing: '0.06em', textTransform: 'uppercase', cursor: uploading ? 'default' : 'pointer',
                 opacity: uploading ? 0.6 : 1, border: 'none',
@@ -580,14 +552,14 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                   {displayGuest.map(item => {
                     const isHidden = item.hidden || hiddenIds.has(item.id)
                     if (item.type === 'video') {
-                      return <VideoCard key={item.id} item={item} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+                      return <VideoCard key={item.id} item={item} accent={accent} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
                     }
                     const photoIdx = guestPhotoItems.findIndex(p => p.id === item.id)
-                    return <PhotoCard key={item.id} item={item} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+                    return <PhotoCard key={item.id} item={item} accent={accent} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
                   })}
                 </div>
                 {displayGuest.length === 0 && !uploading && (
-                  <p style={{ textAlign: 'center', fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: t.muted, fontFamily: "'Inter', sans-serif", marginTop: '20px' }}>
+                  <p style={{ textAlign: 'center', fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: muted, fontFamily: "'Inter', sans-serif", marginTop: '20px' }}>
                     Aucun media pour l'instant. Soyez le premier a partager vos souvenirs !
                   </p>
                 )}
@@ -597,14 +569,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         </div>
       )}
 
-      {/* Footer */}
-      <div className="gallery-footer" style={{ borderTop: `0.5px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '16px', fontWeight: 300, lineHeight: '20px', color: t.subtle, letterSpacing: '0.04em' }}>galerie-en-ligne.fr</span>
-      </div>
-
       {/* Share modal */}
       {shareOpen && (() => {
-        const galleryLink = `https://galerie-en-ligne.fr/galerie/${slug}`
+        const galleryLink = `${window.location.origin}/galerie/${slug}`
         const shareBtnStyle: React.CSSProperties = {
           width: '100%', padding: '12px', border: 'none', borderRadius: '12px',
           fontSize: '16px', fontWeight: 300, lineHeight: '20px', fontFamily: "'Inter', sans-serif", cursor: 'pointer',
@@ -614,9 +581,9 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         return (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => setShareOpen(false)}>
-            <div onClick={e => e.stopPropagation()} style={{ background: dark ? '#2a2a2a' : 'white', borderRadius: '16px', padding: '32px', maxWidth: '400px', width: '90%', position: 'relative' }}>
-              <button onClick={() => setShareOpen(false)} style={{ position: 'absolute', top: '12px', right: '16px', background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: t.muted }}>x</button>
-              <h3 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '20px', color: t.text, fontFamily: "'Inter', sans-serif" }}>Partager la galerie</h3>
+            <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '400px', width: '90%', position: 'relative' }}>
+              <button onClick={() => setShareOpen(false)} style={{ position: 'absolute', top: '12px', right: '16px', background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: muted }}>x</button>
+              <h3 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '20px', color: '#1A1A1A', fontFamily: "'Inter', sans-serif" }}>Partager la galerie</h3>
 
               {/* WhatsApp */}
               <a href={`https://wa.me/?text=${encodeURIComponent(`Retrouvez nos souvenirs sur ${galleryLink}`)}`}
@@ -627,11 +594,11 @@ export default function GalleryViewer({ slug }: { slug: string }) {
 
               {/* Copier lien */}
               <button onClick={() => {
-                navigator.clipboard.writeText(`${galleryLink}`)
+                navigator.clipboard.writeText(galleryLink)
                 setShareOpen(false)
                 setToast('Lien copié !')
                 setTimeout(() => setToast(null), 4000)
-              }} style={{ ...shareBtnStyle, background: dark ? '#444' : '#2C2C2C' }}>
+              }} style={{ ...shareBtnStyle, background: accent }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 Copier le lien
               </button>
@@ -652,58 +619,22 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {/* Close */}
-          <button
-            onClick={() => setLightboxIndex(null)}
-            style={{
-              position: 'absolute', top: '16px', right: '20px',
-              background: 'transparent', border: 'none', color: 'white',
-              fontSize: '28px', lineHeight: 1, cursor: 'pointer',
-              padding: '8px', minWidth: '44px', minHeight: '44px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >×</button>
+          <button onClick={() => setLightboxIndex(null)} style={{ position: 'absolute', top: '16px', right: '20px', background: 'transparent', border: 'none', color: 'white', fontSize: '28px', lineHeight: 1, cursor: 'pointer', padding: '8px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
 
-          {/* Prev arrow */}
           {photoItems.length > 1 && (
-            <button
-              onClick={handleLightboxPrev}
-              style={{
-                position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
-                background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
-                borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0,
-              }}
-            >‹</button>
+            <button onClick={handleLightboxPrev} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
+          )}
+          {photoItems.length > 1 && (
+            <button onClick={handleLightboxNext} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>›</button>
           )}
 
-          {/* Next arrow */}
-          {photoItems.length > 1 && (
-            <button
-              onClick={handleLightboxNext}
-              style={{
-                position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)',
-                background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
-                borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0,
-              }}
-            >›</button>
-          )}
-
-          <img
-            src={lightboxItem.streamUrl}
-            alt=""
-            onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '4px', display: 'block' }}
-          />
+          <img src={lightboxItem.streamUrl} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '4px', display: 'block' }} />
           <a
             href={`/api/proxy/${lightboxItem.id}?download=1&filename=${encodeURIComponent(lightboxItem.name)}`}
             download={lightboxItem.name}
             onClick={e => e.stopPropagation()}
             style={{
-              marginTop: '16px', background: '#2C2C2C', color: 'white',
+              marginTop: '16px', background: accent, color: 'white',
               padding: '10px 28px', borderRadius: '8px', fontSize: '16px', fontWeight: 400,
               lineHeight: '20px', textTransform: 'uppercase', letterSpacing: '0.06em',
               fontFamily: "'Inter', sans-serif", textDecoration: 'none',
@@ -731,80 +662,38 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   )
 }
 
-function VideoCard({ item, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
+function VideoCard({ item, accent, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; accent: string; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
   return (
     <div style={{ width: '100%', position: 'relative', opacity: isHidden ? 0.4 : 1 }}>
-      <video
-        controls={!isHidden}
-        playsInline
-        preload="metadata"
-        src={`/api/proxy/${item.id}`}
-        poster={`/api/proxy/${item.id}?thumb=1`}
-        style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }}
-      />
+      <video controls={!isHidden} playsInline preload="metadata" src={`/api/proxy/${item.id}`} poster={`/api/proxy/${item.id}?thumb=1`} style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: '10px', display: 'block', background: '#1c1c1c' }} />
       {!isHidden && (
-        <a
-          href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}.mp4`}
-          download
-          style={{
-            display: 'block', width: '100%', marginTop: '8px', padding: '8px 0',
-            background: '#2C2C2C', color: 'white', border: 'none', borderRadius: '8px',
-            fontFamily: 'Inter, sans-serif', fontSize: '16px', fontWeight: 400, lineHeight: '20px',
-            textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', textDecoration: 'none', cursor: 'pointer',
-          }}
-        >Telecharger</a>
+        <a href={`/api/proxy/${item.id}?download=1&filename=${encodeURIComponent(item.name)}.mp4`} download style={{ display: 'block', width: '100%', marginTop: '8px', padding: '8px 0', background: accent, color: 'white', border: 'none', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '16px', fontWeight: 400, lineHeight: '20px', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', textDecoration: 'none', cursor: 'pointer' }}>Telecharger</a>
       )}
       {isEditor && !isHidden && (
-        <button onClick={onHide} style={{
-          position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white',
-          border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px',
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }} title="Masquer">X</button>
+        <button onClick={onHide} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Masquer">X</button>
       )}
       {isEditor && isHidden && (
-        <button onClick={onUnhide} style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          background: '#2C2C2C', color: 'white', border: 'none', borderRadius: '8px',
-          padding: '8px 20px', fontSize: '16px', fontWeight: 400, lineHeight: '20px', fontFamily: 'Inter, sans-serif',
-          textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
-        }}>Restaurer</button>
+        <button onClick={onUnhide} style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: accent, color: 'white', border: 'none', borderRadius: '8px', padding: '8px 20px', fontSize: '16px', fontWeight: 400, lineHeight: '20px', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>Restaurer</button>
       )}
     </div>
   )
 }
 
-function PhotoCard({ item, onOpen, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; onOpen: () => void; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
+function PhotoCard({ item, accent, onOpen, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; accent: string; onOpen: () => void; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
   const [hovered, setHovered] = useState(false)
   return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onOpen}
-      style={{ position: 'relative', aspectRatio: '9/16', borderRadius: '10px', overflow: 'hidden', cursor: isHidden ? 'default' : 'pointer', width: '100%', opacity: isHidden ? 0.4 : 1 }}
-    >
+    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onClick={onOpen} style={{ position: 'relative', aspectRatio: '9/16', borderRadius: '10px', overflow: 'hidden', cursor: isHidden ? 'default' : 'pointer', width: '100%', opacity: isHidden ? 0.4 : 1 }}>
       <img src={item.streamUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
       {hovered && !isHidden && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
-          </svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
         </div>
       )}
       {isEditor && !isHidden && (
-        <button onClick={e => { e.stopPropagation(); onHide() }} style={{
-          position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white',
-          border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px',
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
-        }} title="Masquer">X</button>
+        <button onClick={e => { e.stopPropagation(); onHide() }} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }} title="Masquer">X</button>
       )}
       {isEditor && isHidden && (
-        <button onClick={e => { e.stopPropagation(); onUnhide() }} style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          background: '#2C2C2C', color: 'white', border: 'none', borderRadius: '8px',
-          padding: '8px 20px', fontSize: '16px', fontWeight: 400, lineHeight: '20px', fontFamily: 'Inter, sans-serif',
-          textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', zIndex: 10,
-        }}>Restaurer</button>
+        <button onClick={e => { e.stopPropagation(); onUnhide() }} style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: accent, color: 'white', border: 'none', borderRadius: '8px', padding: '8px 20px', fontSize: '16px', fontWeight: 400, lineHeight: '20px', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', zIndex: 10 }}>Restaurer</button>
       )}
     </div>
   )

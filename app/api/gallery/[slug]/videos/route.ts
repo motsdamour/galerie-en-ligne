@@ -17,12 +17,23 @@ export async function GET(
   const db = supabaseAdmin()
   const { data: event } = await db
     .from('events')
-    .select('pcloud_folder_id, couple_name, event_date, hidden_files, edit_token, expires_at')
+    .select('pcloud_folder_id, couple_name, event_date, hidden_files, edit_token, expires_at, operator_id')
     .eq('slug', slug)
     .single()
 
   if (!event) {
     return NextResponse.json({ error: 'Événement introuvable' }, { status: 404 })
+  }
+
+  // Fetch operator branding if linked
+  let operator = null
+  if (event.operator_id) {
+    const { data: op } = await db
+      .from('operators')
+      .select('name, logo_url, accent_color, bg_color')
+      .eq('id', event.operator_id)
+      .single()
+    if (op) operator = op
   }
 
   try {
@@ -89,6 +100,7 @@ export async function GET(
         eventDate: event.event_date,
         expiresAt: event.expires_at,
       },
+      operator,
       folders: foldersClean,
       totalVideos,
       guestPhotos,
