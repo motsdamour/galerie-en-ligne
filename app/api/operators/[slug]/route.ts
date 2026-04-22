@@ -72,10 +72,15 @@ export async function DELETE(
     // Delete operator event folder
     if (operator.pcloud_folder_id) {
       try {
-        await fetch(`${PCLOUD_API}/deletefolderrecursive?auth=${pcloudToken}&folderid=${operator.pcloud_folder_id}`)
+        console.log('[DELETE] pcloud_folder_id:', operator.pcloud_folder_id)
+        const delRes = await fetch(`${PCLOUD_API}/deletefolderrecursive?auth=${pcloudToken}&folderid=${operator.pcloud_folder_id}`)
+        const delData = await delRes.json()
+        console.log('[DELETE] pCloud event folder response:', JSON.stringify(delData))
       } catch (err) {
         console.error('[DELETE] pCloud operator folder error:', err)
       }
+    } else {
+      console.log('[DELETE] Pas de pcloud_folder_id pour', operator.name)
     }
 
     // Delete logo folder: Logos/[operator.name]
@@ -86,14 +91,18 @@ export async function DELETE(
       const logosFolder = (logosData.metadata?.contents ?? []).find(
         (c: any) => c.isfolder && c.name === 'Logos'
       )
+      console.log('[DELETE] Logos folder found:', logosFolder?.folderid ?? 'non trouvé')
       if (logosFolder) {
         const subRes = await fetch(`${PCLOUD_API}/listfolder?auth=${pcloudToken}&folderid=${logosFolder.folderid}&recursive=0`)
         const subData = await subRes.json()
         const opLogoFolder = (subData.metadata?.contents ?? []).find(
           (c: any) => c.isfolder && c.name === operator.name
         )
+        console.log('[DELETE] Logo subfolder for', operator.name, ':', opLogoFolder?.folderid ?? 'non trouvé')
         if (opLogoFolder) {
-          await fetch(`${PCLOUD_API}/deletefolderrecursive?auth=${pcloudToken}&folderid=${opLogoFolder.folderid}`)
+          const logoDelRes = await fetch(`${PCLOUD_API}/deletefolderrecursive?auth=${pcloudToken}&folderid=${opLogoFolder.folderid}`)
+          const logoDelData = await logoDelRes.json()
+          console.log('[DELETE] pCloud logo folder response:', JSON.stringify(logoDelData))
         }
       }
     } catch (err) {

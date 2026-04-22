@@ -63,12 +63,15 @@ export async function POST(
   const rootFolderId = process.env.PCLOUD_ROOT_FOLDER_ID || '0'
 
   // 1. Find or create "Logos" inside root
+  console.log('[UPLOAD-LOGO] Root folder:', rootFolderId)
   const logosFolderId = await findOrCreateFolder(pcloudToken, rootFolderId, 'Logos')
+  console.log('[UPLOAD-LOGO] Logos folder:', logosFolderId)
 
-  // 2. Find or create operator subfolder inside "Logos loueurs"
+  // 2. Find or create operator subfolder inside "Logos"
   const operatorFolderId = await findOrCreateFolder(pcloudToken, logosFolderId, operator.name)
+  console.log('[UPLOAD-LOGO] Operator folder:', operatorFolderId, 'for', operator.name)
 
-  // 3. Upload logo into operator subfolder
+  // 3. Upload logo into Logos/[operator.name]/
   const ext = file.name.split('.').pop() || 'png'
   const fileName = `logo.${ext}`
 
