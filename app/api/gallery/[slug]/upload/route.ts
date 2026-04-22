@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '100mb',
+    },
+  },
+}
+
 const PCLOUD_API = 'https://eapi.pcloud.com'
 const MAX_SIZE = 100 * 1024 * 1024 // 100MB
 const MAX_GUEST_PHOTOS = 1000
