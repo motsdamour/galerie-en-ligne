@@ -34,6 +34,8 @@ export async function GET(
   return NextResponse.json({ operator, galleries: galleries ?? [] })
 }
 
+const PCLOUD_API = 'https://eapi.pcloud.com'
+
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -47,10 +49,10 @@ export async function DELETE(
   const { slug } = await params
   const db = supabaseAdmin()
 
-  // Find operator
+  // Find operator with pcloud info
   const { data: operator } = await db
     .from('operators')
-    .select('id')
+    .select('id, name, pcloud_folder_id')
     .eq('slug', slug)
     .single()
 
@@ -64,7 +66,42 @@ export async function DELETE(
     .update({ operator_id: null })
     .eq('operator_id', operator.id)
 
-  // Delete operator
+  // Delete pCloud folders
+  const pcloudToken = process.env.PCLOUD_AUTH_TOKEN
+  if (pcloudToken) {
+    // Delete operator event folder
+    if (operator.pcloud_folder_id) {
+      try {
+        await fetch(`${PCLOUD_API}/deletefolderrecursive?auth=${pcloudToken}&folderid=${operator.pcloud_folder_id}`)
+      } catch (err) {
+        console.error('[DELETE] pCloud operator folder error:', err)
+      }
+    }
+
+    // Delete logo folder: Logos/[operator.name]
+    const rootFolderId = process.env.PCLOUD_ROOT_FOLDER_ID || '0'
+    try {
+      const logosRes = await fetch(`${PCLOUD_API}/listfolder?auth=${pcloudToken}&folderid=${rootFolderId}&recursive=0`)
+      const logosData = await logosRes.json()
+      const logosFolder = (logosData.metadata?.contents ?? []).find(
+        (c: any) => c.isfolder && c.name === 'Logos'
+      )
+      if (logosFolder) {
+        const subRes = await fetch(`${PCLOUD_API}/listfolder?auth=${pcloudToken}&folderid=${logosFolder.folderid}&recursive=0`)
+        const subData = await subRes.json()
+        const opLogoFolder = (subData.metadata?.contents ?? []).find(
+          (c: any) => c.isfolder && c.name === operator.name
+        )
+        if (opLogoFolder) {
+          await fetch(`${PCLOUD_API}/deletefolderrecursive?auth=${pcloudToken}&folderid=${opLogoFolder.folderid}`)
+        }
+      }
+    } catch (err) {
+      console.error('[DELETE] pCloud logo folder error:', err)
+    }
+  }
+
+  // Delete operator from DB
   const { error } = await db
     .from('operators')
     .delete()
