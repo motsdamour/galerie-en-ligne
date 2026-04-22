@@ -31,6 +31,11 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
   const [showNewModal, setShowNewModal] = useState(false)
   const [newForm, setNewForm] = useState({ coupleName: '', eventDate: '', coupleEmail: '', expiresDays: '90' })
   const [creating, setCreating] = useState(false)
+  const [uploadSlug, setUploadSlug] = useState<string | null>(null)
+  const [uploadFiles, setUploadFiles] = useState<File[]>([])
+  const [uploadProgress, setUploadProgress] = useState<Record<string, { done: boolean; error?: string }>>({})
+  const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
 
   useEffect(() => {
     if (sessionStatus === 'loading') return
@@ -139,6 +144,38 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
       if (d) { setGalleries(d.galleries ?? []); setStats(d.stats ?? { total: 0, active: 0 }) }
     } catch { alert('Erreur réseau') }
     finally { setCreating(false) }
+  }
+
+  async function handleUpload() {
+    if (!uploadSlug || uploadFiles.length === 0) return
+    setUploading(true)
+    const progress: Record<string, { done: boolean; error?: string }> = {}
+    for (const file of uploadFiles) {
+      progress[file.name] = { done: false }
+    }
+    setUploadProgress({ ...progress })
+
+    for (const file of uploadFiles) {
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch(`/api/gallery/${uploadSlug}/upload`, { method: 'POST', body: formData })
+        const data = await res.json()
+        progress[file.name] = { done: true, error: res.ok && data.success ? undefined : (data.error || 'Erreur') }
+      } catch {
+        progress[file.name] = { done: true, error: 'Erreur réseau' }
+      }
+      setUploadProgress({ ...progress })
+    }
+    setUploading(false)
+  }
+
+  function openUploadModal(eventSlug: string) {
+    setUploadSlug(eventSlug)
+    setUploadFiles([])
+    setUploadProgress({})
+    setUploading(false)
+    setDragOver(false)
   }
 
   function logout() {
@@ -329,6 +366,16 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
                         Aucun email configuré
                       </span>
                     )}
+                    <button
+                      onClick={() => openUploadModal(ev.slug)}
+                      style={{
+                        background: 'transparent', border: '1px solid #1a1a1a', borderRadius: 8,
+                        padding: '7px 16px', fontSize: 13, fontFamily: "'Inter', sans-serif",
+                        fontWeight: 500, cursor: 'pointer', color: '#1a1a1a', marginLeft: 8,
+                      }}
+                    >
+                      Ajouter des médias
+                    </button>
                   </div>
                 </div>
               )
@@ -336,6 +383,127 @@ export default function OperatorDashboard({ params }: { params: Promise<{ slug: 
           )}
         </div>
       </div>
+
+      {/* Modal Upload médias */}
+      {uploadSlug && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }} onClick={() => !uploading && setUploadSlug(null)}>
+          <div style={{
+            background: 'white', borderRadius: 16, padding: 36, width: '100%', maxWidth: 480,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          }} onClick={e => e.stopPropagation()}>
+            <h2 style={{
+              fontFamily: "'Playfair Display', serif", fontSize: 22, fontStyle: 'italic',
+              fontWeight: 500, color: '#1A1A1A', margin: '0 0 20px',
+            }}>
+              Ajouter des médias
+            </h2>
+
+            {/* Drop zone */}
+            <div
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => {
+                e.preventDefault()
+                setDragOver(false)
+                const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
+                if (files.length) setUploadFiles(prev => [...prev, ...files])
+              }}
+              style={{
+                border: `2px dashed ${dragOver ? '#1a1a1a' : '#E8E4DF'}`,
+                borderRadius: 12, padding: '32px 24px', textAlign: 'center',
+                background: dragOver ? '#F5F5F5' : '#FAFAF8', transition: 'all 0.15s',
+                marginBottom: 16, cursor: 'pointer',
+              }}
+              onClick={() => {
+                const input = document.createElement('input')
+                input.type = 'file'
+                input.accept = 'image/*,video/*'
+                input.multiple = true
+                input.onchange = () => {
+                  const files = Array.from(input.files || [])
+                  if (files.length) setUploadFiles(prev => [...prev, ...files])
+                }
+                input.click()
+              }}
+            >
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" strokeWidth="1.5" strokeLinecap="round" style={{ margin: '0 auto 12px', display: 'block' }}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#6B6B6B', margin: 0 }}>
+                Glissez vos fichiers ici ou <span style={{ color: '#1a1a1a', fontWeight: 600 }}>cliquez pour parcourir</span>
+              </p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9B9B9B', margin: '6px 0 0' }}>
+                Photos et vidéos uniquement
+              </p>
+            </div>
+
+            {/* File list */}
+            {uploadFiles.length > 0 && (
+              <div style={{ marginBottom: 16, maxHeight: 200, overflowY: 'auto' }}>
+                {uploadFiles.map((file, i) => {
+                  const p = uploadProgress[file.name]
+                  return (
+                    <div key={`${file.name}-${i}`} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0',
+                      borderBottom: '1px solid #F0EDE8',
+                    }}>
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#1a1a1a', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {file.name}
+                      </span>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#9B9B9B', flexShrink: 0 }}>
+                        {(file.size / 1024 / 1024).toFixed(1)} MB
+                      </span>
+                      {p?.done && !p.error && (
+                        <span style={{ color: '#2e7d32', fontSize: 14 }}>✓</span>
+                      )}
+                      {p?.done && p.error && (
+                        <span style={{ color: '#c0524c', fontSize: 11, fontFamily: "'Inter', sans-serif" }}>{p.error}</span>
+                      )}
+                      {p && !p.done && (
+                        <div style={{ width: 16, height: 16, border: '2px solid #E8E4DF', borderTopColor: '#1a1a1a', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      )}
+                      {!p && !uploading && (
+                        <button onClick={() => setUploadFiles(prev => prev.filter((_, j) => j !== i))} style={{
+                          background: 'transparent', border: 'none', color: '#9B9B9B', cursor: 'pointer', fontSize: 16, padding: 0, lineHeight: 1,
+                        }}>×</button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setUploadSlug(null)} disabled={uploading} style={{
+                background: 'transparent', border: '1px solid #E8E4DF', borderRadius: 8,
+                padding: '9px 20px', fontSize: 13, fontFamily: "'Inter', sans-serif",
+                cursor: uploading ? 'default' : 'pointer', color: '#6B6B6B', fontWeight: 500,
+                opacity: uploading ? 0.5 : 1,
+              }}>
+                {uploading ? 'Upload en cours...' : 'Fermer'}
+              </button>
+              {uploadFiles.length > 0 && !uploading && !Object.values(uploadProgress).some(p => p.done) && (
+                <button onClick={handleUpload} style={{
+                  background: '#2C2C2C', color: 'white', border: 'none', borderRadius: 8,
+                  padding: '9px 24px', fontSize: 13, fontFamily: "'Inter', sans-serif",
+                  cursor: 'pointer', fontWeight: 500,
+                }}>
+                  Envoyer {uploadFiles.length} fichier{uploadFiles.length > 1 ? 's' : ''}
+                </button>
+              )}
+              {Object.values(uploadProgress).length > 0 && Object.values(uploadProgress).every(p => p.done) && (
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#2e7d32', fontWeight: 500, alignSelf: 'center' }}>
+                  Upload terminé
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Nouvelle galerie */}
       {showNewModal && (
