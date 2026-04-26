@@ -100,7 +100,6 @@ export async function GET(req: NextRequest) {
   const { data } = await db
     .from('events')
     .select('id, couple_name, event_date, event_type, slug, is_active, expires_at, created_at, password_plain, user_id, edit_token, couple_email, operator_id')
-    .is('operator_id', null)
     .order('created_at', { ascending: false })
 
   return NextResponse.json(data)
