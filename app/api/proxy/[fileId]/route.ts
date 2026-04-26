@@ -82,7 +82,10 @@ export async function GET(
   const lowerFilename = filename.toLowerCase()
   const isMP4 = lowerFilename.endsWith('.mp4') || pcloudUrl.toLowerCase().includes('.mp4')
   const upstreamCT = upstream.headers.get('content-type') ?? 'application/octet-stream'
-  resHeaders.set('content-type', isMP4 ? 'video/mp4' : upstreamCT)
+  // En mode download, forcer octet-stream pour empêcher iOS Safari de prévisualiser
+  resHeaders.set('content-type', download
+    ? 'application/octet-stream'
+    : (isMP4 ? 'video/mp4' : upstreamCT))
 
   const contentLength = upstream.headers.get('content-length')
   if (contentLength) resHeaders.set('content-length', contentLength)
@@ -95,8 +98,16 @@ export async function GET(
 
   resHeaders.set('x-content-type-options', 'nosniff')
 
-  if (download && filename) {
-    resHeaders.set('content-disposition', `attachment; filename="${filename}"`)
+  if (download) {
+    // RFC 6266 : fallback ASCII + filename* UTF-8 pour accents/apostrophes
+    const safeName = filename
+      ? filename.replace(/[^\x20-\x7E]/g, '_')
+      : 'download'
+    const utf8Name = filename ? encodeURIComponent(filename) : 'download'
+    resHeaders.set(
+      'content-disposition',
+      `attachment; filename="${safeName}"; filename*=UTF-8''${utf8Name}`
+    )
   }
 
   resHeaders.set('cache-control', 'private, max-age=3600')

@@ -54,11 +54,13 @@ function slugify(str: string) {
 async function buildZip(
   files: MediaFile[],
   zipName: string,
-  onProgress: (done: number, total: number) => void
+  onProgress: (done: number, total: number) => void,
+  filteredIds?: Set<number>
 ) {
+  const toDownload = filteredIds ? files.filter(f => filteredIds.has(f.id)) : files
   const zip = new JSZip()
   let done = 0
-  await Promise.all(files.map(async (f) => {
+  await Promise.all(toDownload.map(async (f) => {
     const res = await fetch(`/api/proxy/${f.id}?filename=${encodeURIComponent(f.name)}`)
     const blob = await res.blob()
     const ext = /\.[a-z0-9]+$/i.test(f.name) ? '' : (f.type === 'image' ? '.jpg' : '.mp4')
@@ -100,6 +102,8 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const navDropRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number | null>(null)
 
@@ -232,6 +236,29 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [navDropOpen])
+
+  function toggleSelect(id: number) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function handleSelectionZip() {
+    if (zipKey || selectedIds.size === 0) return
+    setZipKey('selection')
+    const allVisible = [...allFiles, ...guestMedia].filter(f => !hiddenIds.has(f.id) && !f.hidden)
+    setZipProgress({ done: 0, total: selectedIds.size })
+    try {
+      await buildZip(allVisible, `galerie-selection-${coupleName}.zip`, (done, total) => setZipProgress({ done, total }), selectedIds)
+    } finally {
+      setZipKey(null)
+      setSelectionMode(false)
+      setSelectedIds(new Set())
+    }
+  }
 
   const currentFolder = folders[activeTab]
   const currentItems = currentFolder?.videos ?? []
@@ -452,7 +479,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
               return (
                 <button
                   key={folder.folderid}
-                  onClick={() => { setActiveTab(i); setShowGuestTab(false) }}
+                  onClick={() => { setActiveTab(i); setShowGuestTab(false); setSelectedIds(new Set()); setSelectionMode(false) }}
                   style={{
                     flexShrink: 0,
                     background: 'transparent',
@@ -479,7 +506,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
             })}
             {visibleGuestMedia.length > 0 && (
               <button
-                onClick={() => setShowGuestTab(true)}
+                onClick={() => { setShowGuestTab(true); setSelectedIds(new Set()); setSelectionMode(false) }}
                 style={{
                   flexShrink: 0,
                   background: 'transparent',
@@ -507,15 +534,40 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         )}
       </div>
 
+      {/* Selection mode toggle */}
+      <div style={{ padding: '0 20px', display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          onClick={() => { setSelectionMode(m => !m); if (selectionMode) setSelectedIds(new Set()) }}
+          style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            fontSize: '13px', fontWeight: 500, color: selectionMode ? '#c0524c' : '#6B6B6B',
+            fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
+            padding: '8px 0', display: 'flex', alignItems: 'center', gap: '6px',
+          }}
+        >
+          {selectionMode ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Annuler
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Selectionner
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Grid */}
       {!showGuestTab ? (
         <div className={isPhotosTab ? 'gallery-grid-photo gallery-content' : 'gallery-grid-video gallery-content'}>
           {(isEditor ? currentItems : currentItems.filter(item => !hiddenIds.has(item.id) && !item.hidden)).map((item) => {
             const isHidden = item.hidden || hiddenIds.has(item.id)
             const isPhoto = isPhotosTab || item.type === 'image'
-            if (!isPhoto) return <VideoCard key={item.id} item={item} accent={accent} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+            if (!isPhoto) return <VideoCard key={item.id} item={item} accent={accent} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} selectionMode={selectionMode} selected={selectedIds.has(item.id)} onToggleSelect={() => toggleSelect(item.id)} />
             const photoIdx = photoItems.findIndex(p => p.id === item.id)
-            return <PhotoCard key={item.id} item={item} accent={accent} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+            return <PhotoCard key={item.id} item={item} accent={accent} onOpen={() => !isHidden && (selectionMode ? toggleSelect(item.id) : setLightboxIndex(photoIdx))} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} selectionMode={selectionMode} selected={selectedIds.has(item.id)} />
           })}
         </div>
       ) : (
@@ -562,10 +614,10 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                   {displayGuest.map(item => {
                     const isHidden = item.hidden || hiddenIds.has(item.id)
                     if (item.type === 'video') {
-                      return <VideoCard key={item.id} item={item} accent={accent} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+                      return <VideoCard key={item.id} item={item} accent={accent} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} selectionMode={selectionMode} selected={selectedIds.has(item.id)} onToggleSelect={() => toggleSelect(item.id)} />
                     }
                     const photoIdx = guestPhotoItems.findIndex(p => p.id === item.id)
-                    return <PhotoCard key={item.id} item={item} accent={accent} onOpen={() => !isHidden && setLightboxIndex(photoIdx)} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} />
+                    return <PhotoCard key={item.id} item={item} accent={accent} onOpen={() => !isHidden && (selectionMode ? toggleSelect(item.id) : setLightboxIndex(photoIdx))} isEditor={isEditor} isHidden={isHidden} onHide={() => hideFile(item.id)} onUnhide={() => unhideFile(item.id)} selectionMode={selectionMode} selected={selectedIds.has(item.id)} />
                   })}
                 </div>
                 {displayGuest.length === 0 && !uploading && (
@@ -687,6 +739,64 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         </div>
       )}
 
+      {/* Selection bar */}
+      {selectionMode && selectedIds.size > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 800,
+          background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(8px)',
+          borderTop: `1px solid ${border}`, padding: '12px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+          fontFamily: "'Inter', sans-serif",
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: 500, color: '#1A1A1A' }}>
+            {selectedIds.size} element{selectedIds.size > 1 ? 's' : ''} selectionne{selectedIds.size > 1 ? 's' : ''}
+          </span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={() => {
+                const visibleItems = showGuestTab
+                  ? guestMedia.filter(f => !hiddenIds.has(f.id) && !f.hidden)
+                  : currentItems.filter(f => !hiddenIds.has(f.id) && !f.hidden)
+                const allSelected = visibleItems.every(f => selectedIds.has(f.id))
+                if (allSelected) {
+                  setSelectedIds(new Set())
+                } else {
+                  setSelectedIds(new Set(visibleItems.map(f => f.id)))
+                }
+              }}
+              style={{
+                background: 'transparent', border: `1px solid ${border}`, borderRadius: '8px',
+                padding: '8px 14px', fontSize: '12px', fontWeight: 500, color: '#6B6B6B',
+                cursor: 'pointer', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap',
+              }}
+            >
+              {(() => {
+                const visibleItems = showGuestTab
+                  ? guestMedia.filter(f => !hiddenIds.has(f.id) && !f.hidden)
+                  : currentItems.filter(f => !hiddenIds.has(f.id) && !f.hidden)
+                return visibleItems.every(f => selectedIds.has(f.id)) ? 'Tout deselectionner' : 'Tout selectionner'
+              })()}
+            </button>
+            <button
+              onClick={handleSelectionZip}
+              disabled={!!zipKey}
+              style={{
+                background: '#e97872', color: 'white', border: 'none', borderRadius: '8px',
+                padding: '8px 18px', fontSize: '12px', fontWeight: 600,
+                cursor: zipKey ? 'default' : 'pointer', fontFamily: "'Inter', sans-serif",
+                opacity: zipKey ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              {zipKey === 'selection' ? `${zipProgress.done}/${zipProgress.total}...` : 'Telecharger'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Toast */}
       {toast && (
         <div style={{
@@ -704,7 +814,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   )
 }
 
-function VideoCard({ item, accent, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; accent: string; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
+function VideoCard({ item, accent, isEditor, isHidden, onHide, onUnhide, selectionMode, selected, onToggleSelect }: { item: MediaFile; accent: string; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void; selectionMode?: boolean; selected?: boolean; onToggleSelect?: () => void }) {
   const [hovered, setHovered] = useState(false)
   const [playing, setPlaying] = useState(false)
 
@@ -714,9 +824,25 @@ function VideoCard({ item, accent, isEditor, isHidden, onHide, onUnhide }: { ite
       onMouseLeave={() => setHovered(false)}
       style={{ width: '100%', position: 'relative', opacity: isHidden ? 0.35 : 1, borderRadius: '12px', overflow: 'hidden' }}
     >
+      {selectionMode && !isHidden && (
+        <div
+          onClick={(e) => { e.stopPropagation(); onToggleSelect?.() }}
+          style={{
+            position: 'absolute', top: '8px', right: '8px', zIndex: 15,
+            width: '28px', height: '28px', borderRadius: '6px',
+            background: selected ? '#e97872' : 'rgba(0,0,0,0.35)',
+            border: '2px solid white', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            minWidth: '44px', minHeight: '44px',
+            padding: '8px', boxSizing: 'content-box', margin: '-8px',
+          }}
+        >
+          {selected && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+        </div>
+      )}
       {!playing ? (
         <div
-          onClick={() => !isHidden && setPlaying(true)}
+          onClick={() => { if (selectionMode) { onToggleSelect?.(); return } if (!isHidden) setPlaying(true) }}
           style={{ position: 'relative', cursor: isHidden ? 'default' : 'pointer', aspectRatio: '9/16', background: '#111' }}
         >
           <img
@@ -779,7 +905,7 @@ function VideoCard({ item, accent, isEditor, isHidden, onHide, onUnhide }: { ite
   )
 }
 
-function PhotoCard({ item, accent, onOpen, isEditor, isHidden, onHide, onUnhide }: { item: MediaFile; accent: string; onOpen: () => void; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void }) {
+function PhotoCard({ item, accent, onOpen, isEditor, isHidden, onHide, onUnhide, selectionMode, selected }: { item: MediaFile; accent: string; onOpen: () => void; isEditor: boolean; isHidden: boolean; onHide: () => void; onUnhide: () => void; selectionMode?: boolean; selected?: boolean }) {
   const [hovered, setHovered] = useState(false)
   return (
     <div
@@ -788,6 +914,17 @@ function PhotoCard({ item, accent, onOpen, isEditor, isHidden, onHide, onUnhide 
       onClick={onOpen}
       style={{ position: 'relative', aspectRatio: '3/4', borderRadius: '12px', overflow: 'hidden', cursor: isHidden ? 'default' : 'pointer', width: '100%', opacity: isHidden ? 0.35 : 1 }}
     >
+      {selectionMode && !isHidden && (
+        <div style={{
+          position: 'absolute', top: '8px', right: '8px', zIndex: 15,
+          width: '28px', height: '28px', borderRadius: '6px',
+          background: selected ? '#e97872' : 'rgba(0,0,0,0.35)',
+          border: '2px solid white', pointerEvents: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {selected && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+        </div>
+      )}
       <img src={item.streamUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
       {hovered && !isHidden && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.15s' }}>
