@@ -51,6 +51,15 @@ function slugify(str: string) {
   return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
+const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/.test(navigator.userAgent)
+
+function canShareFiles(): boolean {
+  if (typeof navigator === 'undefined' || !navigator.canShare) return false
+  try {
+    return navigator.canShare({ files: [new File([''], 'test.jpg', { type: 'image/jpeg' })] })
+  } catch { return false }
+}
+
 async function buildZip(
   files: MediaFile[],
   zipName: string,
@@ -104,6 +113,7 @@ export default function GalleryViewer({ slug }: { slug: string }) {
   const [toast, setToast] = useState<string | null>(null)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [shareSupported] = useState(() => canShareFiles())
   const navDropRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number | null>(null)
 
@@ -253,6 +263,36 @@ export default function GalleryViewer({ slug }: { slug: string }) {
     setZipProgress({ done: 0, total: selectedIds.size })
     try {
       await buildZip(allVisible, `galerie-selection-${coupleName}.zip`, (done, total) => setZipProgress({ done, total }), selectedIds)
+    } finally {
+      setZipKey(null)
+      setSelectionMode(false)
+      setSelectedIds(new Set())
+    }
+  }
+
+  async function handleNativeShare() {
+    if (zipKey || selectedIds.size === 0) return
+    setZipKey('share')
+    const allVisible = [...allFiles, ...guestMedia].filter(f => !hiddenIds.has(f.id) && !f.hidden)
+    const selected = allVisible.filter(f => selectedIds.has(f.id))
+    setZipProgress({ done: 0, total: selected.length })
+    try {
+      const files: File[] = []
+      for (const f of selected) {
+        const ext = /\.[a-z0-9]+$/i.test(f.name) ? '' : (f.type === 'image' ? '.jpg' : '.mp4')
+        const fullName = `${f.name}${ext}`
+        const res = await fetch(`/api/proxy/${f.id}?download=1&filename=${encodeURIComponent(fullName)}`)
+        const blob = await res.blob()
+        const mime = f.type === 'image' ? 'image/jpeg' : 'video/mp4'
+        files.push(new File([blob], fullName, { type: mime }))
+        setZipProgress(prev => ({ ...prev, done: prev.done + 1 }))
+      }
+      await navigator.share({ files })
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setToast('Erreur lors du partage')
+        setTimeout(() => setToast(null), 4000)
+      }
     } finally {
       setZipKey(null)
       setSelectionMode(false)
@@ -744,29 +784,27 @@ export default function GalleryViewer({ slug }: { slug: string }) {
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 800,
           background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(8px)',
-          borderTop: `1px solid ${border}`, padding: '12px 20px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+          borderTop: `1px solid ${border}`, padding: '14px 20px',
+          display: 'flex', flexDirection: 'column', gap: '10px',
           fontFamily: "'Inter', sans-serif",
         }}>
-          <span style={{ fontSize: '13px', fontWeight: 500, color: '#1A1A1A' }}>
-            {selectedIds.size} element{selectedIds.size > 1 ? 's' : ''} selectionne{selectedIds.size > 1 ? 's' : ''}
-          </span>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Row 1: counter + select all */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: '#1A1A1A' }}>
+              {selectedIds.size} element{selectedIds.size > 1 ? 's' : ''} selectionne{selectedIds.size > 1 ? 's' : ''}
+            </span>
             <button
               onClick={() => {
                 const visibleItems = showGuestTab
                   ? guestMedia.filter(f => !hiddenIds.has(f.id) && !f.hidden)
                   : currentItems.filter(f => !hiddenIds.has(f.id) && !f.hidden)
                 const allSelected = visibleItems.every(f => selectedIds.has(f.id))
-                if (allSelected) {
-                  setSelectedIds(new Set())
-                } else {
-                  setSelectedIds(new Set(visibleItems.map(f => f.id)))
-                }
+                if (allSelected) setSelectedIds(new Set())
+                else setSelectedIds(new Set(visibleItems.map(f => f.id)))
               }}
               style={{
-                background: 'transparent', border: `1px solid ${border}`, borderRadius: '8px',
-                padding: '8px 14px', fontSize: '12px', fontWeight: 500, color: '#6B6B6B',
+                background: 'transparent', border: `1px solid ${border}`, borderRadius: '6px',
+                padding: '6px 12px', fontSize: '12px', fontWeight: 500, color: muted,
                 cursor: 'pointer', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap',
               }}
             >
@@ -777,22 +815,137 @@ export default function GalleryViewer({ slug }: { slug: string }) {
                 return visibleItems.every(f => selectedIds.has(f.id)) ? 'Tout deselectionner' : 'Tout selectionner'
               })()}
             </button>
-            <button
-              onClick={handleSelectionZip}
-              disabled={!!zipKey}
-              style={{
-                background: '#e97872', color: 'white', border: 'none', borderRadius: '8px',
-                padding: '8px 18px', fontSize: '12px', fontWeight: 600,
-                cursor: zipKey ? 'default' : 'pointer', fontFamily: "'Inter', sans-serif",
-                opacity: zipKey ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              {zipKey === 'selection' ? `${zipProgress.done}/${zipProgress.total}...` : 'Telecharger'}
-            </button>
+          </div>
+
+          {/* Row 2: action buttons — 5 mutually exclusive cases */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+
+            {/* Case A: Desktop, 1 file → direct download */}
+            {!isMobile && selectedIds.size === 1 && (() => {
+              const allVisible = [...allFiles, ...guestMedia].filter(f => !hiddenIds.has(f.id) && !f.hidden)
+              const file = allVisible.find(f => selectedIds.has(f.id))
+              if (!file) return null
+              const ext = /\.[a-z0-9]+$/i.test(file.name) ? '' : (file.type === 'image' ? '.jpg' : '.mp4')
+              return (
+                <a
+                  href={`/api/proxy/${file.id}?download=1&filename=${encodeURIComponent(file.name + ext)}`}
+                  download={file.name + ext}
+                  style={{
+                    flex: 1, background: '#e97872', color: 'white', border: 'none', borderRadius: '8px',
+                    padding: '10px 16px', fontSize: '12px', fontWeight: 600,
+                    fontFamily: "'Inter', sans-serif", textDecoration: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Telecharger
+                </a>
+              )
+            })()}
+
+            {/* Case B: Desktop, 2+ files → ZIP */}
+            {!isMobile && selectedIds.size >= 2 && (
+              <button
+                onClick={handleSelectionZip}
+                disabled={!!zipKey}
+                style={{
+                  flex: 1, background: '#e97872', color: 'white', border: 'none', borderRadius: '8px',
+                  padding: '10px 16px', fontSize: '12px', fontWeight: 600,
+                  cursor: zipKey ? 'default' : 'pointer', fontFamily: "'Inter', sans-serif",
+                  opacity: zipKey ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {zipKey === 'selection' ? `${zipProgress.done}/${zipProgress.total}...` : 'Telecharger en ZIP'}
+              </button>
+            )}
+
+            {/* Case C: Mobile + share + ≤20 → "Enregistrer dans Photos" + ZIP fallback */}
+            {isMobile && shareSupported && selectedIds.size <= 20 && (
+              <>
+                <button
+                  onClick={handleNativeShare}
+                  disabled={!!zipKey}
+                  style={{
+                    flex: 1, background: '#e97872', color: 'white', border: 'none', borderRadius: '8px',
+                    padding: '10px 16px', fontSize: '12px', fontWeight: 600,
+                    cursor: zipKey ? 'default' : 'pointer', fontFamily: "'Inter', sans-serif",
+                    opacity: zipKey ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+                  </svg>
+                  {zipKey === 'share' ? `${zipProgress.done}/${zipProgress.total}...` : 'Enregistrer dans Photos'}
+                </button>
+                <button
+                  onClick={handleSelectionZip}
+                  disabled={!!zipKey}
+                  style={{
+                    background: 'transparent', color: muted, border: `1px solid ${border}`,
+                    borderRadius: '8px', padding: '10px 14px', fontSize: '12px', fontWeight: 500,
+                    cursor: zipKey ? 'default' : 'pointer', fontFamily: "'Inter', sans-serif",
+                    opacity: zipKey ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {zipKey === 'selection' ? `${zipProgress.done}/${zipProgress.total}...` : 'ZIP'}
+                </button>
+              </>
+            )}
+
+            {/* Case D: Mobile + share + >20 → hint + ZIP */}
+            {isMobile && shareSupported && selectedIds.size > 20 && (
+              <>
+                <span style={{ fontSize: '11px', fontWeight: 400, color: muted, flex: 1 }}>
+                  Pour enregistrer dans Photos, selectionnez 20 fichiers ou moins
+                </span>
+                <button
+                  onClick={handleSelectionZip}
+                  disabled={!!zipKey}
+                  style={{
+                    background: '#e97872', color: 'white', border: 'none', borderRadius: '8px',
+                    padding: '10px 16px', fontSize: '12px', fontWeight: 600,
+                    cursor: zipKey ? 'default' : 'pointer', fontFamily: "'Inter', sans-serif",
+                    opacity: zipKey ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  {zipKey === 'selection' ? `${zipProgress.done}/${zipProgress.total}...` : 'ZIP'}
+                </button>
+              </>
+            )}
+
+            {/* Case E: Mobile no share → ZIP only */}
+            {isMobile && !shareSupported && (
+              <button
+                onClick={handleSelectionZip}
+                disabled={!!zipKey}
+                style={{
+                  flex: 1, background: '#e97872', color: 'white', border: 'none', borderRadius: '8px',
+                  padding: '10px 16px', fontSize: '12px', fontWeight: 600,
+                  cursor: zipKey ? 'default' : 'pointer', fontFamily: "'Inter', sans-serif",
+                  opacity: zipKey ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {zipKey === 'selection' ? `${zipProgress.done}/${zipProgress.total}...` : 'Telecharger en ZIP'}
+              </button>
+            )}
+
           </div>
         </div>
       )}
